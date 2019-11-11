@@ -1,0 +1,40 @@
+name: Autologger
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  autolog:
+    runs-on: ubuntu-latest
+    env:
+      CHANGELOG_GITHUB_TOKEN: ${{secrets.CHANGELOG_GITHUB_TOKEN}}
+      CHANGELOG_GEN_METAFILE: .github_changelog_generator
+    steps:
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: "2.x"
+      - name: Run autolog/prepare
+        run: |
+          gem install github_changelog_generator
+          # This step must succeed. If it doesn't, fail the build.
+          export LATEST_MILESTONE=$(curl "https://api.github.com/repos/paced/perfect/milestones" -s \
+            -H "Authorization: token $CHANGELOG_GITHUB_TOKEN" | grep '"title": "\d\.\d\.\d"' | grep "\d.\d.\d." -o)
+          echo $LATEST_MILESTONE
+          touch $CHANGELOG_GEN_METAFILE
+          echo "unreleased=false" >> $CHANGELOG_GEN_METAFILE
+          echo "future-release=$LATEST_MILESTONE" >> $CHANGELOG_GEN_METAFILE  # TODO
+          git describe --abbrev=0 && echo "since-tag=$(git describe --abbrev=0)" >> $CHANGELOG_GEN_METAFILE || \
+            echo "Couldn't find any tags. This is the first version."
+      - name: Run autolog/generate
+        run: |
+          touch CHANGELOG.md
+          awk "/## \[$(git describe --abbrev=0)\]/,0" CHANGELOG.md > HISTORY.md
+          export REPO_OWNER=$(echo "$GITHUB_REPOSITORY" | cut -d "/" -f 1)
+          export REPO_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d "/" -f 2)
+          github_changelog_generator -u $REPO_OWNER -p $REPO_NAME
+      - name: Run autolog/cleanup
+        run: |
+          rm HISTORY.md $CHANGELOG_GEN_METAFILE
+          git add CHANGELOG.md
