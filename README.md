@@ -4,7 +4,7 @@ Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-g
 
 ## Rationale
 
-`github-changelog-generator` is a fantastic tool. Unfortunately, I'm not too familiar with Ruby and I'm much faster with `bash` scripting to achieve my ends. This generator adds the following features:
+`github-changelog-generator` is a fantastic tool. Unfortunately, I'm not too familiar with Ruby and I'm much faster with `bash` scripting to achieve my ends through a fork. This generator adds the following features:
 
 - Can be used to automatically update the changelog on an event trigger.
 - Allows keeping human-readable/edited changes available.
@@ -12,9 +12,11 @@ Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-g
 
 ## Usage
 
-You will first need to ensure you have a secret in your repository called `CHANGELOG_GITHUB_TOKEN` with either a [personal access token](https://github.com/settings/tokens/new?description=GitHub%20Changelog%20Generator%20token) or OAuth token with access to the repository you want to work with.
+> Note: you **must** be using GitHub Milestones as one per version in order for Autologger to work.
 
-After setting these, simply add it to your `main.yml`. You will need a step before this Action that clones the branch and another that performs a commit. This is how I suggest you use it:
+Simply add this to your `main.yml`. You will gain a special commit note called `skip-log` that will prevent this action from running. You should add this to the automatic commit (see below) and the commit prior to a tag release where you humanise a changelog section, e.g.: `[skip-log] Humanise changelog preparing for the 1.3.10 release`.
+
+You will need a step before this Action that clones the branch and another that performs a commit:
 
 ```yml
 name: Autologger
@@ -35,6 +37,12 @@ jobs:
           COMMIT_FILTER: skip-ci
       - uses: actions/checkout@master
       - uses: teaminkling/autologger@master
+      - name:
+        run: |
+          git add -A
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "[skip-log, auto] Make changes automatically to meta files."
       - uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.CHANGELOG_GITHUB_TOKEN }}
