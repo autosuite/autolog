@@ -37,7 +37,7 @@ jobs:
           COMMIT_FILTER: skip-ci
       - uses: actions/checkout@master
       - uses: teaminkling/autologger@master
-      - name:
+      - name: Pre-remote commit actions
         run: |
           git add -A
           git config --local user.email "action@github.com"
