@@ -16,7 +16,7 @@ Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-g
 
 Simply add this to your `main.yml`. You will gain a special commit note called `skip-log` that will prevent this action from running. You should add this to the automatic commit (see below) and the commit prior to a tag release where you humanise a changelog section, e.g.: `[skip-log] Humanise changelog preparing for the 1.3.10 release`.
 
-You will need a step before this Action that clones the branch and another that performs a commit:
+You will need a step before this Action that clones the branch and another that performs a commit. You will also want to prevent tag pushes from generating a `CHANGELOG.md`.
 
 ```yml
 name: Autologger
@@ -25,6 +25,8 @@ on:
   push:
     branches:
       - master
+    tags-ignore:
+      - *
 
 jobs:
   autocommit:
