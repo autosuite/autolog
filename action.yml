@@ -11,7 +11,6 @@ jobs:
   autolog:
     runs-on: ubuntu-latest
     env:
-      CHANGELOG_GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       CHANGELOG_GEN_METAFILE: .github_changelog_generator
     steps:
       - uses: veggiemonk/skip-commit@1.0.0
@@ -21,11 +20,13 @@ jobs:
         with:
           ruby-version: "2.x"
       - name: Run autolog/prepare
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gem install github_changelog_generator
           # This step must succeed. If it doesn't, fail the build.
           export LATEST_MILESTONE=$(curl "https://api.github.com/repos/paced/perfect/milestones" -s \
-            -H "Authorization: token $CHANGELOG_GITHUB_TOKEN" | grep '"title": "\d\.\d\.\d"' | grep "\d.\d.\d." -o)
+            -H "Authorization: token $GITHUB_TOKEN" | grep '"title": "\d\.\d\.\d"' | grep "\d.\d.\d." -o)
           echo $LATEST_MILESTONE
           touch $CHANGELOG_GEN_METAFILE
           echo "unreleased=false" >> $CHANGELOG_GEN_METAFILE
