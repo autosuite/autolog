@@ -29,21 +29,22 @@ on:
 jobs:
   autocommit:
     runs-on: ubuntu-latest
-    env:
-      CHANGELOG_GITHUB_TOKEN: ${{secrets.CHANGELOG_GITHUB_TOKEN}}
     steps:
-      - uses: veggiemonk/skip-commit@1.0.0
+      - uses: paced/skip-commit@master
         env:
-          COMMIT_FILTER: skip-ci
+          COMMIT_FILTER: skip-log, skip-ci, automated
       - uses: actions/checkout@master
       - uses: teaminkling/autologger@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_repository: ${{ github.repository }}
       - name: Pre-remote commit actions
         run: |
-          git add -A
+          git add CHANGELOG.md
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -m "[skip-log, auto] Make changes automatically to meta files."
       - uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.CHANGELOG_GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 ```

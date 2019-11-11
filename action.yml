@@ -1,50 +1,16 @@
 name: Autologger
 description: Automatic generation of the CHANGELOG.md file from Issues and the most recent Milestone.
 author: 'Inkling Interactive'
-
-on:
-  push:
-    branches:
-      - master
-
-jobs:
-  autolog:
-    runs-on: ubuntu-latest
-    env:
-      CHANGELOG_GEN_METAFILE: .github_changelog_generator
-    steps:
-      - uses: veggiemonk/skip-commit@1.0.0
-        env:
-          COMMIT_FILTER: skip-log
-      - uses: actions/setup-ruby@v1
-        with:
-          ruby-version: "2.x"
-      - name: Run autolog/prepare
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gem install github_changelog_generator
-          # This step must succeed. If it doesn't, fail the build.
-          export LATEST_MILESTONE=$(curl "https://api.github.com/repos/paced/perfect/milestones" -s \
-            -H "Authorization: token $GITHUB_TOKEN" | grep '"title": "\d\.\d\.\d"' | grep "\d.\d.\d." -o)
-          echo $LATEST_MILESTONE
-          touch $CHANGELOG_GEN_METAFILE
-          echo "unreleased=false" >> $CHANGELOG_GEN_METAFILE
-          echo "future-release=$LATEST_MILESTONE" >> $CHANGELOG_GEN_METAFILE  # TODO
-          git describe --abbrev=0 && echo "since-tag=$(git describe --abbrev=0)" >> $CHANGELOG_GEN_METAFILE || \
-            echo "Couldn't find any tags. This is the first version."
-      - name: Run autolog/generate
-        run: |
-          touch CHANGELOG.md
-          awk "/## \[$(git describe --abbrev=0)\]/,0" CHANGELOG.md > HISTORY.md
-          export REPO_OWNER=$(echo "$GITHUB_REPOSITORY" | cut -d "/" -f 1)
-          export REPO_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d "/" -f 2)
-          github_changelog_generator -u $REPO_OWNER -p $REPO_NAME
-      - name: Run autolog/cleanup
-        run: |
-          rm HISTORY.md $CHANGELOG_GEN_METAFILE
-          git add CHANGELOG.md
-
 branding:
   icon: align-justify
   color: yellow
+inputs:
+  github_token:
+    description: 'Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}'
+    required: true
+  github_repository:
+    description: 'The GitHub repository in the form user-or-org/project.'
+    required: true
+runs:
+  using: docker
+  image: Dockerfile
