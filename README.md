@@ -19,14 +19,12 @@ Simply add this to your `main.yml`. You will gain a special commit note called `
 You will need a step before this Action that clones the branch and another that performs a commit. You will also want to prevent tag pushes from generating a `CHANGELOG.md`.
 
 ```yml
-name: Autologger
+name: my-workflow
 
 on:
   push:
     branches:
       - master
-    tags-ignore:
-      - *
 
 jobs:
   autocommit:
