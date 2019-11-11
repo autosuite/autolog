@@ -1,4 +1,4 @@
-name: my-workflow
+name: CI/CD
 
 on:
   push:
@@ -8,15 +8,16 @@ on:
 jobs:
   autocommit:
     runs-on: ubuntu-latest
-    env:
-      CHANGELOG_GITHUB_TOKEN: ${{secrets.CHANGELOG_GITHUB_TOKEN}}
     steps:
       - uses: veggiemonk/skip-commit@1.0.0
         env:
           COMMIT_FILTER: skip-ci
       - uses: actions/checkout@master
       - uses: teaminkling/autologger@master
-      - name: Pre remote-commit actions
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_repository: ${{ github.repository }}
+      - name: Pre-remote commit actions
         run: |
           git add -A
           git config --local user.email "action@github.com"
@@ -24,4 +25,4 @@ jobs:
           git commit -m "[skip-log, auto] Make changes automatically to meta files."
       - uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.CHANGELOG_GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
