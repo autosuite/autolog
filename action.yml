@@ -1,7 +1,6 @@
 name: Autologger
 description: Automatic generation of the CHANGELOG.md file from Issues and the most recent Milestone.
-icon: align-justify
-color: yellow
+author: 'Inkling Interactive'
 
 on:
   push:
@@ -12,9 +11,12 @@ jobs:
   autolog:
     runs-on: ubuntu-latest
     env:
-      CHANGELOG_GITHUB_TOKEN: ${{secrets.CHANGELOG_GITHUB_TOKEN}}
+      CHANGELOG_GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       CHANGELOG_GEN_METAFILE: .github_changelog_generator
     steps:
+      - uses: veggiemonk/skip-commit@1.0.0
+        env:
+          COMMIT_FILTER: skip-log
       - uses: actions/setup-ruby@v1
         with:
           ruby-version: "2.x"
@@ -41,3 +43,7 @@ jobs:
         run: |
           rm HISTORY.md $CHANGELOG_GEN_METAFILE
           git add CHANGELOG.md
+
+branding:
+  icon: align-justify
+  color: yellow
