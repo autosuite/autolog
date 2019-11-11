@@ -1,4 +1,7 @@
 name: Autologger
+description: Automatic generation of the CHANGELOG.md file from Issues and the most recent Milestone.
+icon: align-justify
+color: yellow
 
 on:
   push:
