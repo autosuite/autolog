@@ -22,7 +22,8 @@ jobs:
           git add -A && \
             git config --local user.email "action@github.com" && \
             git config --local user.name "GitHub Action" && \
-            git commit -m "[skip-log, auto] Make changes automatically to meta files."
+            git commit -m "[skip-log, auto] Make changes automatically to meta files." || \
+            echo "Nothing changed that needs to be updated."
       - uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
