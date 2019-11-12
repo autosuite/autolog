@@ -10,6 +10,14 @@ const Octokit = require("@octokit/rest");
  */
 let CHANGELOG_GENERATOR_META_FILENAME = "/.github_changelog_generator";
 
+/* Add the .trim() method to the String type. */
+
+if (typeof (String.prototype.trim) === "undefined") {
+    String.prototype.trim = function () {
+        return String(this).replace(/^\s+|\s+$/g, '');
+    };
+}
+
 /*
  * Initialise GitHub API instance.
  */
@@ -17,14 +25,14 @@ let CHANGELOG_GENERATOR_META_FILENAME = "/.github_changelog_generator";
 console.log("Authenticating with the GitHub API...");
 
 const octokit = Octokit({
-    auth: core.getInput("github-token"),
+    auth: core.getInput("github-token") || "d7974b1a5cb828220edc880d6912f3ecc011c25d",
     baseUrl: 'https://api.github.com',
 });
 
 /**
  * Run a command and syncronously return its result.
  *
- * @param String command the command to run
+ * @param {String} command the command to run
  */
 function exec(command) {
     return execSync(command, { encoding: 'utf-8' });
@@ -33,7 +41,7 @@ function exec(command) {
 /**
  * From a GitHub Milestones API response (as JSON), find the latest SemVer version.
  *
- * @param Object milestones
+ * @param {Object} milestones
  */
 function findLatestVersionFromMilestones(milestones) {
     console.log("Trying to find the latest milestone version.");
@@ -58,10 +66,50 @@ function findLatestVersionFromMilestones(milestones) {
 }
 
 /**
+ * Try to find the latest version section from the changelog.
+ */
+function findLatestVersionFromChangelog() {
+    console.log("Trying to find latest changelog version.");
+
+    const contents = fs.readFileSync(path + "/CHANGELOG.md").toString();
+
+    /* Attempt to get the first match. */
+
+    const foundVersions = contents.match(/(?<=## \[)(\d\.\d\.\d)(?=].*)/);
+
+    if (!foundVersions) {
+        return "0.0.0";
+    } else {
+        return foundVersions[0];
+    }
+}
+
+/**
+ * Decide between using a since-tag of the log version or the tag version. The log version often is a version that is
+ * not yet tagged and therefore unreleased (e.g.: the same as the milestones version). The tag version is always a
+ * version that is released, but an edge case is that it is not in the CHANGELOG.md file for whatever reason.
+ *
+ * In conclusion, the tag version should be used unless it is not in the CHANGELOG.md file. In that case, the version to
+ * be used is the version at the top of the CHANGELOG.md file.
+ *
+ * @param {String} logVersion the log version
+ * @param {String} tagVersion the tag version
+ */
+function determineLatestPrepared(logVersion, tagVersion) {
+    const contents = fs.readFileSync(path + "/CHANGELOG.md").toString();
+
+    if (contents.includes(tagVersion)) {
+        return tagVersion;
+    }
+
+    return logVersion;
+}
+
+/**
  * Update or create the meta files required. This involves adding "unreleased", "future-release", and "since-tag". If
  * these flags are already present in the file, they are updated. Otherwise, they are added.
  */
-function updateMetaFile(latestMilestoneVersion, latestTagVersion) {
+function updateMetaFile(latestMilestoneVersion, latestPreparedVersion) {
     const absPath = path + "/" + CHANGELOG_GENERATOR_META_FILENAME;
     const existingContents = fs.existsSync(absPath) ?
         fs.readFileSync(absPath).toString() : "";
@@ -80,16 +128,16 @@ function updateMetaFile(latestMilestoneVersion, latestTagVersion) {
     newContents += "base=HISTORY.md" + "\n";
     newContents += "future-release=" + latestMilestoneVersion + "\n";
 
-    if (latestTagVersion != "0.0.0") {
-        newContents += "since-tag=" + latestTagVersion + "\n";
+    if (latestPreparedVersion != "0.0.0") {
+        newContents += "since-tag=" + latestPreparedVersion + "\n";
     }
 
     fs.writeFileSync(absPath, newContents);
 }
 
-/* Find the latest milestone version tag, if it exists. */
+/* Find the latest milestone version, if it exists. */
 
-const ownerRepo = core.getInput('github-repository');
+const ownerRepo = core.getInput('github-repository') || "teaminkling/autologger";
 const owner = ownerRepo.split("/")[0];
 const repo = ownerRepo.split("/")[1];
 
@@ -108,41 +156,55 @@ octokit.issues.listMilestonesForRepo({
     const latestMilestoneVersion = findLatestVersionFromMilestones(milestones);
 
     /*
-     * Note that the following must run in the working directory of the same repo that we checked milestones from. It
-     * can fail if the current repository does not have any tags.
+     * Note that the following must run in the working directory of the same repo that we checked milestones from.
      */
 
+    let latestLogVersion = "0.0.0";
     let latestTagVersion = "0.0.0";
 
     try {
-        console.log("Trying to find latest tag.");
+        console.log("Trying to find latest changelog version.");
 
-        latestTagVersion = exec('git describe --abbrev=0');
-    } catch {
-        console.log("No tags are present in the repository. This is fine, it just means the entire file will be " +
-            "regenerated");
+        latestLogVersion = findLatestVersionFromChangelog();
+        latestTagVersion = exec('git describe --abbrev=0').trim();
+    } catch (e) {
+        console.log(e);
+        console.log("No versions are present in the tags.");
     }
+
+    console.log("Latest milestone version found was: " + latestMilestoneVersion);
+    console.log("Latest log version found was: " + latestLogVersion);
+    console.log("Latest tag version found was: " + latestTagVersion);
 
     /* Create the meta files. */
 
-    updateMetaFile(latestMilestoneVersion, latestTagVersion);
+    const latestPreparedVersion = determineLatestPrepared(latestLogVersion, latestTagVersion);
+
+    console.log("Latest prepared version found was: " + latestPreparedVersion);
+
+    updateMetaFile(latestMilestoneVersion, latestPreparedVersion);
 
     /* Copy existing changelog data, if present. */
 
-    exec("touch CHANGELOG.md && " +
-        "awk \"/## \\[$(git describe --abbrev=0)\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | " +
-        "head -n -1 > HISTORY.md");
+    const command = "touch CHANGELOG.md && awk \"/## \\[" + latestPreparedVersion +
+        "\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | head -n -1 > HISTORY.md";
+
+    console.log("Running: " + command.toString());
+    exec(command);
 
     /* Run auto-changelogger. */
 
     console.log("Running auto-logger for: " + ownerRepo);
 
     exec("docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user " +
-        owner + " --project " + repo);
+        owner + " --project " + repo + " --token d7974b1a5cb828220edc880d6912f3ecc011c25d");
 
     /* Clean up. */
 
     console.log("All done, cleaning up.");
+
+    fs.writeFileSync(path + "/CHANGELOG.md", fs.readFileSync(path + "/CHANGELOG.md").toString()
+        .replace(/\n{2,}/gi, "\n\n"));
 
     exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"");
 });
