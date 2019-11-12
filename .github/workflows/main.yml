@@ -18,6 +18,10 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-repository: ${{ github.repository }}
+      - uses: teaminkling/automilestone@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-repository: ${{ github.repository }}
       - name: Pre-remote commit actions
         run: |
           git add CHANGELOG.md README.md package.json && \
