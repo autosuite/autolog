@@ -20,7 +20,7 @@ jobs:
           github-repository: ${{ github.repository }}
       - name: Pre-remote commit actions
         run: |
-          git add -A && \
+          git add CHANGELOG.md README.md package.json && \
             git config --local user.email "action@github.com" && \
             git config --local user.name "GitHub Action" && \
             git commit -m "[skip-log, auto] Make changes automatically to meta files." || \
