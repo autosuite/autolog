@@ -30,10 +30,10 @@ jobs:
   autocommit:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@master
       - uses: paced/skip-commit@master
         env:
           COMMIT_FILTER: skip-log, skip-ci, automated
-      - uses: actions/checkout@master
       - uses: teaminkling/autologger@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
