@@ -42,7 +42,7 @@ function findLatestVersionFromMilestones(milestones) {
 
     /* The latest milestone is the last one in the array response. */
 
-    for (const milestone of data.reverse()) {
+    for (const milestone of data) {
         const versionMatches = milestone.title.match(/\d\.\d\.\d/);
 
         if (versionMatches.length == 1) {
