@@ -79,7 +79,10 @@ function updateMetaFile(latestMilestoneVersion, latestTagVersion) {
 
     newContents += "unreleased=false" + "\n";
     newContents += "future-release=" + latestMilestoneVersion + "\n";
-    newContents += "since-tag=" + latestTagVersion + "\n";
+
+    if (latestTagVersion != "0.0.0") {
+        newContents += "since-tag=" + latestTagVersion + "\n";
+    }
 
     fs.writeFileSync(absPath, newContents);
 }
