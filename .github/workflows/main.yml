@@ -9,20 +9,20 @@ jobs:
   autocommit:
     runs-on: ubuntu-latest
     steps:
-      - uses: veggiemonk/skip-commit@1.0.0
+      - uses: paced/skip-commit@master
         env:
           COMMIT_FILTER: skip-ci
       - uses: actions/checkout@master
       - uses: teaminkling/autologger@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_repository: ${{ github.repository }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-repository: ${{ github.repository }}
       - name: Pre-remote commit actions
         run: |
-          git add -A
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git commit -m "[skip-log, auto] Make changes automatically to meta files."
+          git add -A && \
+            git config --local user.email "action@github.com" && \
+            git config --local user.name "GitHub Action" && \
+            git commit -m "[skip-log, auto] Make changes automatically to meta files."
       - uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
