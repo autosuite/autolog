@@ -137,7 +137,7 @@ function updateMetaFile(latestMilestoneVersion, latestPreparedVersion) {
 
 /* Find the latest milestone version, if it exists. */
 
-const ownerRepo = core.getInput('github-repository') || "teaminkling/autologger";
+const ownerRepo = core.getInput('github-repository');
 const owner = ownerRepo.split("/")[0];
 const repo = ownerRepo.split("/")[1];
 
