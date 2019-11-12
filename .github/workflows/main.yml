@@ -24,6 +24,9 @@ jobs:
             git config --local user.name "GitHub Action" && \
             git commit -m "[skip-log, auto] Make changes automatically to meta files." || \
             echo "Nothing changed that needs to be updated."
+      - name: Pull changes
+        run: |
+          git pull --rebase
       - uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
