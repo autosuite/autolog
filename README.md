@@ -1,6 +1,11 @@
 # Autologger
 
-![Release Usability](https://img.shields.io/static/v1?label=stability&message=prerelease&style=flat-square&color=green)
+![Autobadger Release Stability](https://img.shields.io/static/v1?label=stability&message=prerelease&style=flat-square&color=yellow)
+![Autobadger Latest Release](https://img.shields.io/static/v1?label=latest&message=0.1.0&style=flat-square&color=purple)
+
+[_What are these badges?_](https://github.com/teaminkling/autobadger/tree/master/BADGES.md)
+
+## Introduction
 
 Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-generator/github-changelog-generator) that allows human-readable changelog sections to be retained, to automatically prepare versions based on the most recent SemVer milestone, and to add to a pipeline that performs auto addition, committing, and pushing of changes.
 
