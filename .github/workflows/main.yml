@@ -1,9 +1,6 @@
 name: Self Test
 
-on:
-  push:
-    branches:
-      - master
+on: [push]
 
 jobs:
   autocommit:
