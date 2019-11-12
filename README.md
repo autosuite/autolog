@@ -34,8 +34,8 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - uses: teaminkling/skip-commit@master
-        env:
-          COMMIT_FILTER: skip-log, skip-ci, automated
+        with:
+          commit-filter: skip-log, skip-ci, automated
       - uses: teaminkling/autologger@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1](https://github.com/teaminkling/autologger/tree/0.1.1) (2019-11-12)
+
+[Full Changelog](https://github.com/teaminkling/autologger/compare/0.1.0...0.1.1)
+
+**Fixed bugs:**
+
+- The `HISTORY.md` file should not contain the automatic line [\#10](https://github.com/teaminkling/autologger/issues/10)
+- Patch valid generator configs [\#9](https://github.com/teaminkling/autologger/issues/9)
+- Pick the oldest non-found milestone rather than the newest [\#5](https://github.com/teaminkling/autologger/issues/5)
+
 ## [0.1.0](https://github.com/teaminkling/autologger/tree/0.1.0) (2019-11-12)
 
 [Full Changelog](https://github.com/teaminkling/autologger/compare/66e5d2459af823250dfd689e0d996b82bb40ee76...0.1.0)
@@ -10,6 +20,8 @@
 - Retain the summaries of released older versions [\#3](https://github.com/teaminkling/autologger/issues/3)
 - Replace "future-version" in pipeline [\#2](https://github.com/teaminkling/autologger/issues/2)
 - Replace "since-version" on a pipeline [\#1](https://github.com/teaminkling/autologger/issues/1)
+
+
 
 
 
