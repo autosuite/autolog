@@ -25,7 +25,7 @@ if (typeof (String.prototype.trim) === "undefined") {
 console.log("Authenticating with the GitHub API...");
 
 const octokit = Octokit({
-    auth: core.getInput("github-token") || "d7974b1a5cb828220edc880d6912f3ecc011c25d",
+    auth: core.getInput("github-token"),
     baseUrl: 'https://api.github.com',
 });
 
@@ -197,7 +197,7 @@ octokit.issues.listMilestonesForRepo({
     console.log("Running auto-logger for: " + ownerRepo);
 
     exec("docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user " +
-        owner + " --project " + repo + " --token d7974b1a5cb828220edc880d6912f3ecc011c25d");
+        owner + " --project " + repo);
 
     /* Clean up. */
 
