@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: paced/skip-commit@master
+      - uses: teaminkling/skip-commit@master
         env:
           COMMIT_FILTER: skip-log, skip-ci, automated
       - uses: teaminkling/autologger@master
