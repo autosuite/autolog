@@ -9,10 +9,14 @@ jobs:
   autocommit:
     runs-on: ubuntu-latest
     steps:
-      - uses: paced/skip-commit@master
-        env:
-          COMMIT_FILTER: skip-ci
       - uses: actions/checkout@master
+      - uses: teaminkling/skip-commit@master
+        with:
+          commit-filter: skip-ci
+      - uses: teaminkling/autoversion@master
+        with:
+          managers: npm
+      - uses: teaminkling/autobadger@master
       - uses: teaminkling/autologger@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
