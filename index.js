@@ -70,14 +70,14 @@ function updateMetaFile(latestMilestoneVersion, latestTagVersion) {
     /* Retain some metadata. */
 
     existingContents.split("\n").forEach(line => {
-        if (!line.match(/unreleased.*|future-release.*|since-tag.*|/)) {
+        if (!line.match(/unreleased.*|base.*|future-release.*|since-tag.*/) && line != "") {
             newContents += line + "\n";
         }
     });
 
     /* Add new content. */
 
-    newContents += "unreleased=true" + "\n";
+    newContents += "base=HISTORY.md" + "\n";
     newContents += "future-release=" + latestMilestoneVersion + "\n";
 
     if (latestTagVersion != "0.0.0") {
@@ -129,7 +129,9 @@ octokit.issues.listMilestonesForRepo({
 
     /* Copy existing changelog data, if present. */
 
-    exec("touch CHANGELOG.md && awk \"/## \\[$(git describe --abbrev=0)\\]/,0\" CHANGELOG.md > HISTORY.md");
+    exec("touch CHANGELOG.md && " +
+        "awk \"/## \\[$(git describe --abbrev=0)\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | " +
+        "head -n -1 > HISTORY.md");
 
     /* Run auto-changelogger. */
 
