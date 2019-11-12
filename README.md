@@ -28,10 +28,7 @@ You will need a step before this Action that clones the branch and another that 
 ```yml
 name: my-workflow
 
-on:
-  push:
-    branches:
-      - master
+on: [push]
 
 jobs:
   autocommit:
