@@ -1,0 +1,24 @@
+{
+  "name": "autologger",
+  "version": "1.0.0",
+  "description": "Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-generator/github-changelog-generator) that allows human-readable changelog sections to be retained, to automatically prepare versions based on the most recent SemVer milestone, and to add to a pipeline that performs auto addition, committing, and pushing of changes.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teaminkling/autologger.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/teaminkling/autologger/issues"
+  },
+  "homepage": "https://github.com/teaminkling/autologger#readme",
+  "dependencies": {
+    "@actions/core": "^1.2.0",
+    "@octokit/rest": "^16.35.0"
+  }
+}
