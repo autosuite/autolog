@@ -77,7 +77,7 @@ function updateMetaFile(latestMilestoneVersion, latestTagVersion) {
 
     /* Add new content. */
 
-    newContents += "unreleased=false" + "\n";
+    newContents += "unreleased=true" + "\n";
     newContents += "future-release=" + latestMilestoneVersion + "\n";
 
     if (latestTagVersion != "0.0.0") {
@@ -135,8 +135,8 @@ octokit.issues.listMilestonesForRepo({
 
     console.log("Running auto-logger for: " + ownerRepo);
 
-    exec("docker run --rm -v \"$(pwd)\" ferrarimarco/github-changelog-generator --user " + owner +
-        " --project " + repo);
+    exec("docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user " +
+        owner + " --project " + repo);
 
     /* Clean up. */
 
