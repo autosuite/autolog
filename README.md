@@ -42,13 +42,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_repository: ${{ github.repository }}
-      - name: Pre-remote commit actions
-        run: |
-          git add CHANGELOG.md && \
-            git config --local user.email "action@github.com" && \
-            git config --local user.name "GitHub Action" && \
-            git commit -m "[skip-log, auto] Make changes automatically to meta files." || \
-            echo "No files changed."
+      - uses: teaminkling/autocommit@master
       - uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
