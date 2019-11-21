@@ -142,7 +142,8 @@ const owner = ownerRepo.split("/")[0];
 const repo = ownerRepo.split("/")[1];
 
 if (!owner || !repo) {
-    console.error("github-repository was not set as a correct input.");
+    console.error("github-repository was not set as a correct input. Got owner: '" + owner +
+        "' and repo: '" + repo + "'");
 
     process.exit(1);
 }
