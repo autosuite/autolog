@@ -5,6 +5,8 @@ const path = process.cwd();
 const core = require('@actions/core');
 const Octokit = require("@octokit/rest");
 
+exec("git fetch --tags")
+
 /**
  * The filename for the meta file for GitHub Changelog Generator.
  */
@@ -165,6 +167,12 @@ octokit.issues.listMilestonesForRepo({
 
     try {
         console.log("Trying to find latest changelog version.");
+
+        if (!fs.existsSync(path + "/CHANGELOG.md")) {
+            console.log("Changelog file does not exist. Creating it...");
+
+            exec("touch CHANGELOG.md");
+        }
 
         latestLogVersion = findLatestVersionFromChangelog();
         latestTagVersion = exec('git describe --abbrev=0').trim();
