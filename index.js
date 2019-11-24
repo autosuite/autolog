@@ -166,6 +166,12 @@ octokit.issues.listMilestonesForRepo({
     try {
         console.log("Trying to find latest changelog version.");
 
+        if (!fs.existsSync(path + "/CHANGELOG.md")) {
+            console.log("Changelog file does not exist. Creating it...");
+
+            exec("touch CHANGELOG.md");
+        }
+
         latestLogVersion = findLatestVersionFromChangelog();
         latestTagVersion = exec('git describe --abbrev=0').trim();
     } catch (e) {
