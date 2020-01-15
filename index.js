@@ -5,6 +5,8 @@ const path = process.cwd();
 const core = require('@actions/core');
 const Octokit = require("@octokit/rest");
 
+exec("git fetch --tags")
+
 /**
  * The filename for the meta file for GitHub Changelog Generator.
  */
