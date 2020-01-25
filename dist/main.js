@@ -202,7 +202,7 @@ function run() {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    octokit = new github.GitHub(core.getInput("github-token"));
+                    octokit = new github.GitHub({ token: core.getInput("github-token") });
                     /* Find the latest milestone version. */
                     core.info("Trying to find the latest milestone version...");
                     ownerWithRepo = core.getInput('github-repository');

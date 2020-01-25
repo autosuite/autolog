@@ -148,7 +148,7 @@ async function findLatestVersionFromGitTags(): Promise<string | null> {
 async function run() {
     /* Initialise GitHub API instance. */
 
-    const octokit = new github.GitHub(core.getInput("github-token"));
+    const octokit = new github.GitHub({token: core.getInput("github-token")});
 
     /* Find the latest milestone version. */
 
