@@ -1,6 +1,6 @@
 name: Autologger
 description: Automatic generation of the CHANGELOG.md file from Issues and the most recent Milestone.
-author: 'Inkling Interactive'
+author: "Inkling Interactive"
 branding:
   icon: align-justify
   color: yellow
@@ -9,8 +9,8 @@ inputs:
     description: 'Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}'
     required: true
   github-repository:
-    description: 'The GitHub repository in the form user-or-org/project.'
+    description: "The GitHub repository in the form user-or-org/project."
     required: true
 runs:
   using: node12
-  main: index.js
+  main: dist/main.js
