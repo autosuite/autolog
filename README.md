@@ -1,4 +1,4 @@
-# Autologger
+# Autolog
 
 | Summary           | Badge                                              |
 | ----------------- | -------------------------------------------------- |
@@ -10,11 +10,11 @@
 
 ## Introduction
 
-Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-generator/github-changelog-generator) that allows human-readable changelog sections to be retained, to automatically prepare versions based on the most recent SemVer milestone, and to add to a pipeline that performs auto addition, committing, and pushing of changes.
+Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-generator/github-changelog-generator) that allows human-readable changelog sections to be retained to automatically prepare versions based on the most recent SemVer milestone, and to add to a pipeline that performs auto addition, committing, and pushing of changes.
 
 ## Rationale
 
-`github-changelog-generator` is a fantastic tool. Unfortunately, I'm not too familiar with Ruby and I'm much faster with `bash` scripting to achieve my ends through a fork. This generator adds the following features:
+`github-changelog-generator` is a fantastic tool and this tool utilises and extends it. Autolog:
 
 - Can be used to automatically update the changelog on an event trigger.
 - Allows keeping human-readable/edited changes available.
@@ -24,9 +24,7 @@ Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-g
 
 > Note: you **must** be using GitHub Milestones as one per version in order for Autologger to work.
 
-Simply add this to your `main.yml`. You will gain a special commit note called `skip-log` that will prevent this action from running. You should add this to the automatic commit (see below) and the commit prior to a tag release where you humanise a changelog section, e.g.: `[skip-log] Humanise changelog preparing for the 1.3.10 release`.
-
-You will need a step before this Action that clones the branch and another that performs a commit. You will also want to prevent tag pushes from generating a `CHANGELOG.md`.
+Simply add this job to a workflow as part of the full Autosuite set or with just the following:
 
 ```yml
 name: my-workflow
@@ -38,15 +36,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: teaminkling/skip-commit@master
-        with:
-          commit-filter: skip-log, skip-ci, automated
-      - uses: teaminkling/autologger@master
+      - uses: autosuite/autolog@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_repository: ${{ github.repository }}
-      - uses: teaminkling/autocommit@master
+      - uses: autosuite/autocommit@master
       - uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+## Configuration
+
+> You can see all configuration in the [action.yml](action.yml) file.
+
+| Variable          | Value                    | Example                     | Default | Required? |
+| ----------------- | ------------------------ | --------------------------- | ------- | --------- |
+| github_token      | The GitHub access token. | ${{ secrets.GITHUB_TOKEN }} | N/A     | Yes.      |
+| github_repository | `group_or_user/repo`.    | ${{ github.repository }}    | N/A     | Yes.      |
+
+## Documentation
+
+If you would like to contribute to this project, please read our [contributors documentation](CONTRIBUTING.md) and our [code of conduct](CODE_OF_CONDUCT.md).
+
+The license we use for this project is defined in [the license file](LICENSE).
