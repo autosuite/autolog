@@ -3,6 +3,7 @@ import fs from 'fs';
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
+
 import Octokit from '@octokit/rest';
 
 /**
@@ -42,7 +43,6 @@ async function findLatestVersionFromMilestones(
 
     for (const milestone of milestones) {
         const versionMatches: RegExpMatchArray | null = milestone.title.match(SEMVER_REGEX);
-
         if (versionMatches && versionMatches.length == 1) {
             return versionMatches[0];
         }
@@ -56,11 +56,13 @@ async function findLatestVersionFromMilestones(
  *
  * @param changelogContents the contents of the `CHANGELOG.md` file
  */
-async function findLatestVersionFromChangelog(changelogContents: string): Promise<string | null> {
-    const foundVersions = changelogContents.match(CHANGELOG_VERSION_REGEX);
+async function findLatestVersionFromChangelog(changelogContents: string): Promise<string> {
+    const foundVersions: RegExpMatchArray | null = changelogContents.match(CHANGELOG_VERSION_REGEX);
 
     if (!foundVersions) {
-        return null;
+        core.warning("Can't find a version in the changelog. This can be okay; setting to `0.0.0`.");
+
+        return "0.0.0";
     }
 
     return foundVersions[0];
@@ -124,11 +126,11 @@ async function updateMetaFile(latestMilestoneVersion: string, latestPreparedVers
 /**
  * Using `git` tags, find the latest version if possible. This can exception out.
  */
-async function findLatestVersionFromGitTags(): Promise<string | null> {
+async function findLatestVersionFromGitTags(): Promise<string> {
     let text: string = "";
 
     try {
-        await exec.exec("git fetch --tags");
+        await exec.exec("git fetch --unshallow --all");
         await exec.exec('git describe --abbrev=0', [], {
             listeners: {
                 stdout: (data: Buffer) => {
@@ -139,7 +141,7 @@ async function findLatestVersionFromGitTags(): Promise<string | null> {
     } catch {
         /* Cannot be found. Caller must handle failure outside of function. */
 
-        return null;
+        return "0.0.0";
     }
 
     return text;
@@ -148,13 +150,22 @@ async function findLatestVersionFromGitTags(): Promise<string | null> {
 async function run() {
     /* Initialise GitHub API instance. */
 
-    const octokit: github.GitHub = new github.GitHub(core.getInput("github-token"));
+    const token: string = core.getInput("github-token");
+    if (!token) {
+        core.setFailed("Please provide the `github-token` input! Ensure the hyphen (-) isn't an underscore (_).");
+    }
+
+    const octokit: github.GitHub = new github.GitHub(token);
 
     /* Find the latest milestone version. */
 
     core.info("Trying to find the latest milestone version...");
 
     const ownerWithRepo: string = core.getInput('github-repository');
+    if (!ownerWithRepo) {
+        core.setFailed("Please provide the `github-repository` input!");
+    }
+
     const owner: string = ownerWithRepo.split("/")[0];
     const repo: string = ownerWithRepo.split("/")[1];
 
@@ -182,8 +193,8 @@ async function run() {
         await exec.exec(`touch ${CHANGELOG_FILENAME}`);
     }
 
-    const changelogContents: string = fs.readFileSync(CHANGELOG_GENERATOR_META_FILENAME).toString();
-    const latestLogVersion: string = await findLatestVersionFromChangelog(changelogContents) || "0.0.0";
+    const changelogContents: string = fs.readFileSync(CHANGELOG_FILENAME).toString();
+    const latestLogVersion: string = await findLatestVersionFromChangelog(changelogContents);
 
     core.info(`[Found] Latest log version found was: ${latestLogVersion}`);
 
@@ -192,7 +203,9 @@ async function run() {
      */
 
     core.info("Trying to find the latest tag version...");
-    const latestTagVersion: string = await findLatestVersionFromGitTags() || "0.0.0";
+
+    const latestTagVersion: string = await findLatestVersionFromGitTags();
+
     core.info(`[Found] Latest tag version found was: ${latestTagVersion}`);
 
     /*
@@ -221,11 +234,17 @@ async function run() {
 
     core.info("Copying existing changelog data...");
 
-    const command: string = "touch CHANGELOG.md && awk \"/## \\[" + latestPreparedVersion +
-        "\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | head -n -1 > HISTORY.md";
-    await exec.exec(command);
+    await exec.exec(`touch ${CHANGELOG_FILENAME}`);
+    await exec.exec(`awk "/## \\[${latestPreparedVersion}\\]/\,/\\\* \*This Changelog/" ${CHANGELOG_FILENAME}`);
+    await exec.exec(`head -n -1`, [], {
+        listeners: {
+            stdout: (data: Buffer) => {
+                fs.writeFileSync("HISTORY.md", data.toString());
+            }
+        }
+    });
 
-    core.info("[Task] Changelog data successfully copied.")
+    core.info("[Task] Changelog data successfully copied.");
 
     /* Run auto-changelogger. */
 
@@ -236,7 +255,7 @@ async function run() {
         `${owner} --project ${repo}`
     );
 
-    core.info("[Task] Autologger run complete.")
+    core.info("[Task] Autologger run complete.");
 
     /* Clean up. */
 
@@ -250,7 +269,7 @@ async function run() {
     );
     await exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"");
 
-    core.info("[Task] Cleanup completed.")
+    core.info("[Task] Cleanup completed.");
 }
 
 run();
