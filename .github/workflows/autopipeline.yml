@@ -27,6 +27,15 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v2.0.0
+      - uses: actions/setup-node@v1.1.2
+        with:
+          node-version: 12.x
+      - name: Compile TypeScript
+        run: |
+          npm ci
+          npx tsc
+        env:
+          CI: true
       - name: Self-Test
         uses: ./
         with:

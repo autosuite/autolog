@@ -102,7 +102,8 @@ function findLatestVersionFromChangelog(changelogContents) {
         return __generator(this, function (_a) {
             foundVersions = changelogContents.match(CHANGELOG_VERSION_REGEX);
             if (!foundVersions) {
-                return [2 /*return*/, null];
+                core.warning("Can't find a version in the changelog. This can be okay; setting to `0.0.0`.");
+                return [2 /*return*/, "0.0.0"];
             }
             return [2 /*return*/, foundVersions[0]];
         });
@@ -174,7 +175,7 @@ function findLatestVersionFromGitTags() {
                     _b.label = 1;
                 case 1:
                     _b.trys.push([1, 4, , 5]);
-                    return [4 /*yield*/, exec.exec("git fetch --tags")];
+                    return [4 /*yield*/, exec.exec("git fetch --unshallow --all")];
                 case 2:
                     _b.sent();
                     return [4 /*yield*/, exec.exec('git describe --abbrev=0', [], {
@@ -190,7 +191,7 @@ function findLatestVersionFromGitTags() {
                 case 4:
                     _a = _b.sent();
                     /* Cannot be found. Caller must handle failure outside of function. */
-                    return [2 /*return*/, null];
+                    return [2 /*return*/, "0.0.0"];
                 case 5: return [2 /*return*/, text];
             }
         });
@@ -198,14 +199,21 @@ function findLatestVersionFromGitTags() {
 }
 function run() {
     return __awaiter(this, void 0, void 0, function () {
-        var octokit, ownerWithRepo, owner, repo, latestMilestoneVersion, _a, changelogContents, latestLogVersion, latestTagVersion, latestPreparedVersion, command;
+        var token, octokit, ownerWithRepo, owner, repo, latestMilestoneVersion, _a, changelogContents, latestLogVersion, latestTagVersion, latestPreparedVersion;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    octokit = new github.GitHub(core.getInput("github-token"));
+                    token = core.getInput("github-token");
+                    if (!token) {
+                        core.setFailed("Please provide the `github-token` input! Ensure the hyphen (-) isn't an underscore (_).");
+                    }
+                    octokit = new github.GitHub(token);
                     /* Find the latest milestone version. */
                     core.info("Trying to find the latest milestone version...");
                     ownerWithRepo = core.getInput('github-repository');
+                    if (!ownerWithRepo) {
+                        core.setFailed("Please provide the `github-repository` input!");
+                    }
                     owner = ownerWithRepo.split("/")[0];
                     repo = ownerWithRepo.split("/")[1];
                     if (!owner || !repo) {
@@ -228,10 +236,10 @@ function run() {
                     _b.sent();
                     _b.label = 4;
                 case 4:
-                    changelogContents = fs_1.default.readFileSync(CHANGELOG_GENERATOR_META_FILENAME).toString();
+                    changelogContents = fs_1.default.readFileSync(CHANGELOG_FILENAME).toString();
                     return [4 /*yield*/, findLatestVersionFromChangelog(changelogContents)];
                 case 5:
-                    latestLogVersion = (_b.sent()) || "0.0.0";
+                    latestLogVersion = _b.sent();
                     core.info("[Found] Latest log version found was: " + latestLogVersion);
                     /*
                      * Try to find the latest tag version (not mandatory; default to "0.0.0").
@@ -239,7 +247,7 @@ function run() {
                     core.info("Trying to find the latest tag version...");
                     return [4 /*yield*/, findLatestVersionFromGitTags()];
                 case 6:
-                    latestTagVersion = (_b.sent()) || "0.0.0";
+                    latestTagVersion = _b.sent();
                     core.info("[Found] Latest tag version found was: " + latestTagVersion);
                     /*
                      * Try to find the version that will be seen as the last "completed" version.
@@ -259,17 +267,27 @@ function run() {
                     core.info('[Task] Meta file successfully created/updated.');
                     /* Copy existing changelog data, if present. */
                     core.info("Copying existing changelog data...");
-                    command = "touch CHANGELOG.md && awk \"/## \\[" + latestPreparedVersion +
-                        "\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | head -n -1 > HISTORY.md";
-                    return [4 /*yield*/, exec.exec(command)];
+                    return [4 /*yield*/, exec.exec("touch " + CHANGELOG_FILENAME)];
                 case 9:
+                    _b.sent();
+                    return [4 /*yield*/, exec.exec("awk \"/## \\[" + latestPreparedVersion + "\\]/,/\\* *This Changelog/\" " + CHANGELOG_FILENAME)];
+                case 10:
+                    _b.sent();
+                    return [4 /*yield*/, exec.exec("head -n -1", [], {
+                            listeners: {
+                                stdout: function (data) {
+                                    fs_1.default.writeFileSync("HISTORY.md", data.toString());
+                                }
+                            }
+                        })];
+                case 11:
                     _b.sent();
                     core.info("[Task] Changelog data successfully copied.");
                     /* Run auto-changelogger. */
                     core.info("Running auto-logger for: `" + ownerWithRepo + "`...");
                     return [4 /*yield*/, exec.exec("docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user " +
                             (owner + " --project " + repo))];
-                case 10:
+                case 12:
                     _b.sent();
                     core.info("[Task] Autologger run complete.");
                     /* Clean up. */
@@ -278,7 +296,7 @@ function run() {
                         .toString()
                         .replace(/\n{2,}/gi, "\n\n"));
                     return [4 /*yield*/, exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"")];
-                case 11:
+                case 13:
                     _b.sent();
                     core.info("[Task] Cleanup completed.");
                     return [2 /*return*/];
