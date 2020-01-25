@@ -223,7 +223,7 @@ async function run() {
 
     const command: string = "touch CHANGELOG.md && awk \"/## \\[" + latestPreparedVersion +
         "\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | head -n -1 > HISTORY.md";
-    exec.exec(command);
+    await exec.exec(command);
 
     core.info("[Task] Changelog data successfully copied.")
 
@@ -231,7 +231,7 @@ async function run() {
 
     core.info(`Running auto-logger for: \`${ownerWithRepo}\`...`);
 
-    exec.exec(
+    await exec.exec(
         `docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user ` +
         `${owner} --project ${repo}`
     );
@@ -248,7 +248,7 @@ async function run() {
             .toString()
             .replace(/\n{2,}/gi, "\n\n")
     );
-    exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"");
+    await exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"");
 
     core.info("[Task] Cleanup completed.")
 }

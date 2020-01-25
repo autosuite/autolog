@@ -261,19 +261,25 @@ function run() {
                     core.info("Copying existing changelog data...");
                     command = "touch CHANGELOG.md && awk \"/## \\[" + latestPreparedVersion +
                         "\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | head -n -1 > HISTORY.md";
-                    exec.exec(command);
+                    return [4 /*yield*/, exec.exec(command)];
+                case 9:
+                    _b.sent();
                     core.info("[Task] Changelog data successfully copied.");
                     /* Run auto-changelogger. */
                     core.info("Running auto-logger for: `" + ownerWithRepo + "`...");
-                    exec.exec("docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user " +
-                        (owner + " --project " + repo));
+                    return [4 /*yield*/, exec.exec("docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user " +
+                            (owner + " --project " + repo))];
+                case 10:
+                    _b.sent();
                     core.info("[Task] Autologger run complete.");
                     /* Clean up. */
                     core.info("All done with normal tasks, cleaning up...");
                     fs_1.default.writeFileSync(CHANGELOG_FILENAME, fs_1.default.readFileSync(CHANGELOG_FILENAME)
                         .toString()
                         .replace(/\n{2,}/gi, "\n\n"));
-                    exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"");
+                    return [4 /*yield*/, exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"")];
+                case 11:
+                    _b.sent();
                     core.info("[Task] Cleanup completed.");
                     return [2 /*return*/];
             }
