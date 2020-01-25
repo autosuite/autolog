@@ -5,7 +5,7 @@
 | Release Stability | ![Autobadger Release Stability][release-stability] |
 | Latest Release    | ![Autobadger Latest Release][latest-release]       |
 
-[release-stability]: https://img.shields.io/static/v1?label=latest&message=0.1.0&color=purple
+[release-stability]: https://img.shields.io/static/v1?label=latest&message=0.1.1&color=purple
 [latest-release]: https://img.shields.io/static/v1?label=stability&message=prerelease&color=yellow
 
 ## Introduction
