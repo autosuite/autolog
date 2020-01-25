@@ -1,98 +1,87 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = process.cwd();
+import fs from 'fs';
 
-const core = require('@actions/core');
-const Octokit = require("@octokit/rest");
-
-exec("git fetch --tags")
+import * as core from '@actions/core';
+import * as exec from '@actions/exec';
+import * as github from '@actions/github';
+import Octokit from '@octokit/rest';
 
 /**
  * The filename for the meta file for GitHub Changelog Generator.
  */
-const CHANGELOG_GENERATOR_META_FILENAME: string = "/.github_changelog_generator";
-
-/*
- * Initialise GitHub API instance.
- */
-
-console.log("Authenticating with the GitHub API...");
-
-const octokit = Octokit({
-    auth: core.getInput("github-token"),
-    baseUrl: 'https://api.github.com',
-});
+const CHANGELOG_GENERATOR_META_FILENAME: string = ".github_changelog_generator";
 
 /**
- * Run a command and syncronously return its result.
- *
- * @param {String} command the command to run
+ * The expected name for the changelog file.
  */
-function exec(command) {
-    return execSync(command, { encoding: 'utf-8' });
-}
+const CHANGELOG_FILENAME: string = "CHANGELOG.md"
+
+/**
+ * A regular expression for all of the metadata retained (per line) for the changelog generator meta file.
+ */
+const RETAINED_METADATA_REGEX: RegExp = /unreleased.*|base.*|future-release.*|since-tag.*/;
+
+/**
+ * The regular expression used to find a version match in the `CHANGELOG.md` file.
+ */
+const CHANGELOG_VERSION_REGEX: RegExp = /(?<=## \[)(\d\.\d\.\d)(?=].*)/
+
+/**
+ * The regular expression for the standard SemVer version string.
+ */
+const SEMVER_REGEX: RegExp = /\d\.\d\.\d/;
 
 /**
  * From a GitHub Milestones API response (as JSON), find the latest SemVer version.
  *
- * @param {Object} milestones
+ * @param milestones the milestones data from the Octokit API
  */
-function findLatestVersionFromMilestones(milestones) {
-    console.log("Trying to find the latest milestone version.");
-
-    const data = milestones.data;
-
+async function findLatestVersionFromMilestones(
+    milestones: Octokit.IssuesListMilestonesForRepoResponseItem[]
+): Promise<string | null> {
     /* The latest milestone is the last one in the array response. */
 
-    for (const milestone of data) {
-        const versionMatches = milestone.title.match(/\d\.\d\.\d/);
+    for (const milestone of milestones) {
+        const versionMatches: RegExpMatchArray | null = milestone.title.match(SEMVER_REGEX);
 
-        if (versionMatches.length == 1) {
+        if (versionMatches && versionMatches.length == 1) {
             return versionMatches[0];
         }
     }
 
-    /* No found milestone. Fail with exit. */
-
-    console.error("No milestones were found with SemVer titles. We just need X.Y.Z somewhere and once in the title.");
-
-    process.exit(1);
+    return null;
 }
 
 /**
  * Try to find the latest version section from the changelog.
+ *
+ * @param changelogContents the contents of the `CHANGELOG.md` file
  */
-function findLatestVersionFromChangelog() {
-    console.log("Trying to find latest changelog version.");
-
-    const contents = fs.readFileSync(path + "/CHANGELOG.md").toString();
-
-    /* Attempt to get the first match. */
-
-    const foundVersions = contents.match(/(?<=## \[)(\d\.\d\.\d)(?=].*)/);
+async function findLatestVersionFromChangelog(changelogContents: string): Promise<string | null> {
+    const foundVersions = changelogContents.match(CHANGELOG_VERSION_REGEX);
 
     if (!foundVersions) {
-        return "0.0.0";
-    } else {
-        return foundVersions[0];
+        return null;
     }
+
+    return foundVersions[0];
 }
 
 /**
  * Decide between using a since-tag of the log version or the tag version. The log version often is a version that is
  * not yet tagged and therefore unreleased (e.g.: the same as the milestones version). The tag version is always a
- * version that is released, but an edge case is that it is not in the CHANGELOG.md file for whatever reason.
+ * version that is released, but an edge case is that it is not in the `CHANGELOG.md` file for whatever reason.
  *
- * In conclusion, the tag version should be used unless it is not in the CHANGELOG.md file. In that case, the version to
- * be used is the version at the top of the CHANGELOG.md file.
+ * In conclusion, the tag version should be used unless it is not in the `CHANGELOG.md` file. In that case, the version
+ * to be used is the version at the top of the `CHANGELOG.md` file.
  *
- * @param {String} logVersion the log version
- * @param {String} tagVersion the tag version
+ * @param changelogContents the contents of the `CHANGELOG.md` file
+ * @param logVersion the log version
+ * @param tagVersion the tag version
  */
-function determineLatestPrepared(logVersion, tagVersion) {
-    const contents = fs.readFileSync(path + "/CHANGELOG.md").toString();
-
-    if (contents.includes(tagVersion)) {
+async function determineLatestPrepared(
+    changelogContents: string, logVersion: string, tagVersion: string
+): Promise<string> {
+    if (changelogContents.includes(tagVersion)) {
         return tagVersion;
     }
 
@@ -102,110 +91,166 @@ function determineLatestPrepared(logVersion, tagVersion) {
 /**
  * Update or create the meta files required. This involves adding "unreleased", "future-release", and "since-tag". If
  * these flags are already present in the file, they are updated. Otherwise, they are added.
+ *
+ * @param latestMilestoneVersion
+ * @param latestPreparedVersion
  */
-function updateMetaFile(latestMilestoneVersion, latestPreparedVersion) {
-    const absPath = path + "/" + CHANGELOG_GENERATOR_META_FILENAME;
-    const existingContents = fs.existsSync(absPath) ?
-        fs.readFileSync(absPath).toString() : "";
-    let newContents = "";
+async function updateMetaFile(latestMilestoneVersion: string, latestPreparedVersion: string): Promise<void> {
+    const metaFileContents: string = fs.existsSync(CHANGELOG_GENERATOR_META_FILENAME) ?
+        fs.readFileSync(CHANGELOG_GENERATOR_META_FILENAME).toString() : "";
+
+    let newMetaFileContents: string = "";
 
     /* Retain some metadata. */
 
-    existingContents.split("\n").forEach(line => {
-        if (!line.match(/unreleased.*|base.*|future-release.*|since-tag.*/) && line != "") {
-            newContents += line + "\n";
+    metaFileContents.split("\n").forEach((line: string) => {
+        if (!line.match(RETAINED_METADATA_REGEX) && line != "") {
+            newMetaFileContents += `${line}\n`;
         }
     });
 
     /* Add new content. */
 
-    newContents += "base=HISTORY.md" + "\n";
-    newContents += "future-release=" + latestMilestoneVersion + "\n";
+    newMetaFileContents += "base=HISTORY.md\n";
+    newMetaFileContents += `future-release=${latestMilestoneVersion}\n`;
 
     if (latestPreparedVersion != "0.0.0") {
-        newContents += "since-tag=" + latestPreparedVersion + "\n";
+        newMetaFileContents += `since-tag=${latestPreparedVersion}\n`;
     }
 
-    fs.writeFileSync(absPath, newContents);
+    fs.writeFileSync(CHANGELOG_GENERATOR_META_FILENAME, newMetaFileContents);
 }
 
-/* Find the latest milestone version, if it exists. */
-
-const ownerRepo = core.getInput('github-repository');
-const owner = ownerRepo.split("/")[0];
-const repo = ownerRepo.split("/")[1];
-
-if (!owner || !repo) {
-    console.error("github-repository was not set as a correct input. Got owner: '" + owner +
-        "' and repo: '" + repo + "'");
-
-    process.exit(1);
-}
-
-console.log("Attempting to call milestones for owner: " + owner + " and repo: " + repo);
-
-octokit.issues.listMilestonesForRepo({
-    owner,
-    repo
-}).then(milestones => {
-    const latestMilestoneVersion = findLatestVersionFromMilestones(milestones);
-
-    /*
-     * Note that the following must run in the working directory of the same repo that we checked milestones from.
-     */
-
-    let latestLogVersion = "0.0.0";
-    let latestTagVersion = "0.0.0";
+/**
+ * Using `git` tags, find the latest version if possible. This can exception out.
+ */
+async function findLatestVersionFromGitTags(): Promise<string | null> {
+    let text: string = "";
 
     try {
-        console.log("Trying to find latest changelog version.");
+        await exec.exec("git fetch --tags");
+        await exec.exec('git describe --abbrev=0', [], {
+            listeners: {
+                stdout: (data: Buffer) => {
+                    text += data.toString();
+                }
+            }
+        });
+    } catch {
+        /* Cannot be found. Caller must handle failure outside of function. */
 
-        if (!fs.existsSync(path + "/CHANGELOG.md")) {
-            console.log("Changelog file does not exist. Creating it...");
-
-            exec("touch CHANGELOG.md");
-        }
-
-        latestLogVersion = findLatestVersionFromChangelog();
-        latestTagVersion = exec('git describe --abbrev=0').trim();
-    } catch (e) {
-        console.log(e);
-        console.log("No versions are present in the tags.");
+        return null;
     }
 
-    console.log("Latest milestone version found was: " + latestMilestoneVersion);
-    console.log("Latest log version found was: " + latestLogVersion);
-    console.log("Latest tag version found was: " + latestTagVersion);
+    return text;
+}
 
-    /* Create the meta files. */
+async function run() {
+    /* Initialise GitHub API instance. */
 
-    const latestPreparedVersion = determineLatestPrepared(latestLogVersion, latestTagVersion);
+    const octokit: github.GitHub = new github.GitHub(core.getInput("github-token"));
 
-    console.log("Latest prepared version found was: " + latestPreparedVersion);
+    /* Find the latest milestone version. */
 
-    updateMetaFile(latestMilestoneVersion, latestPreparedVersion);
+    core.info("Trying to find the latest milestone version...");
+
+    const ownerWithRepo: string = core.getInput('github-repository');
+    const owner: string = ownerWithRepo.split("/")[0];
+    const repo: string = ownerWithRepo.split("/")[1];
+
+    if (!owner || !repo) {
+        core.setFailed(`github-repository was not set as a correct input. Got owner: ${owner} and repo: ${repo}.`);
+    }
+
+    const latestMilestoneVersion: string = (
+        await findLatestVersionFromMilestones(
+            (await octokit.issues.listMilestonesForRepo({ owner, repo })).data
+        )
+    )!;
+
+    core.info(`[Found] Latest milestone version found was: ${latestMilestoneVersion}`);
+
+    /*
+     * Try to find the latest version in the changelog (not mandatory; default "0.0.0").
+     */
+
+    core.info("Trying to find latest changelog version...");
+
+    if (!fs.existsSync(CHANGELOG_FILENAME)) {
+        core.warning("Changelog file does not exist. Creating it...");
+
+        await exec.exec(`touch ${CHANGELOG_FILENAME}`);
+    }
+
+    const changelogContents: string = fs.readFileSync(CHANGELOG_GENERATOR_META_FILENAME).toString();
+    const latestLogVersion: string = await findLatestVersionFromChangelog(changelogContents) || "0.0.0";
+
+    core.info(`[Found] Latest log version found was: ${latestLogVersion}`);
+
+    /*
+     * Try to find the latest tag version (not mandatory; default to "0.0.0").
+     */
+
+    core.info("Trying to find the latest tag version...");
+    const latestTagVersion: string = await findLatestVersionFromGitTags() || "0.0.0";
+    core.info(`[Found] Latest tag version found was: ${latestTagVersion}`);
+
+    /*
+     * Try to find the version that will be seen as the last "completed" version.
+     */
+
+    core.info("Trying to derive latest prepared version...");
+
+    const latestPreparedVersion: string = await determineLatestPrepared(
+        changelogContents, latestLogVersion, latestTagVersion
+    );
+
+    core.info(`[Derived] Latest prepared version found was: ${latestPreparedVersion}`);
+
+    /*
+     * Try to update the meta file with the latest prepared version.
+     */
+
+    core.info("Trying to create/update meta file...");
+
+    await updateMetaFile(latestMilestoneVersion, latestPreparedVersion);
+
+    core.info('[Task] Meta file successfully created/updated.');
 
     /* Copy existing changelog data, if present. */
 
-    const command = "touch CHANGELOG.md && awk \"/## \\[" + latestPreparedVersion +
-        "\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | head -n -1 > HISTORY.md";
+    core.info("Copying existing changelog data...");
 
-    console.log("Running: " + command.toString());
-    exec(command);
+    const command: string = "touch CHANGELOG.md && awk \"/## \\[" + latestPreparedVersion +
+        "\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | head -n -1 > HISTORY.md";
+    exec.exec(command);
+
+    core.info("[Task] Changelog data successfully copied.")
 
     /* Run auto-changelogger. */
 
-    console.log("Running auto-logger for: " + ownerRepo);
+    core.info(`Running auto-logger for: \`${ownerWithRepo}\`...`);
 
-    exec("docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user " +
-        owner + " --project " + repo);
+    exec.exec(
+        `docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user ` +
+        `${owner} --project ${repo}`
+    );
+
+    core.info("[Task] Autologger run complete.")
 
     /* Clean up. */
 
-    console.log("All done, cleaning up.");
+    core.info("All done with normal tasks, cleaning up...");
 
-    fs.writeFileSync(path + "/CHANGELOG.md", fs.readFileSync(path + "/CHANGELOG.md").toString()
-        .replace(/\n{2,}/gi, "\n\n"));
+    fs.writeFileSync(
+        CHANGELOG_FILENAME,
+        fs.readFileSync(CHANGELOG_FILENAME)
+            .toString()
+            .replace(/\n{2,}/gi, "\n\n")
+    );
+    exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"");
 
-    exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"");
-});
+    core.info("[Task] Cleanup completed.")
+}
+
+run();
