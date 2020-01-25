@@ -50,7 +50,6 @@ var fs_1 = __importDefault(require("fs"));
 var core = __importStar(require("@actions/core"));
 var exec = __importStar(require("@actions/exec"));
 var github = __importStar(require("@actions/github"));
-var null_writable_1 = __importDefault(require("null-writable"));
 /**
  * The filename for the meta file for GitHub Changelog Generator.
  */
@@ -271,10 +270,7 @@ function run() {
                     return [4 /*yield*/, exec.exec("touch " + CHANGELOG_FILENAME)];
                 case 9:
                     _b.sent();
-                    return [4 /*yield*/, exec.exec("awk \"/## \\[" + latestPreparedVersion + "\\]/,/\\* *This Changelog/\" " + CHANGELOG_FILENAME, [], {
-                            /* Swallout output. */
-                            outStream: new null_writable_1.default()
-                        })];
+                    return [4 /*yield*/, exec.exec("awk \"/## \\[" + latestPreparedVersion + "\\]/,/\\* *This Changelog/\" " + CHANGELOG_FILENAME)];
                 case 10:
                     _b.sent();
                     return [4 /*yield*/, exec.exec("head -n -1", [], {
