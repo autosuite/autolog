@@ -30,8 +30,8 @@ jobs:
       - name: Self-Test
         uses: ./
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_repository: ${{ github.repository }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-repository: ${{ github.repository }}
       - uses: autosuite/autocommit@master
       - uses: ad-m/github-push-action@master
         with:

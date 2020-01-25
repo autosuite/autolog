@@ -148,22 +148,26 @@ async function findLatestVersionFromGitTags(): Promise<string | null> {
 async function run() {
     /* Initialise GitHub API instance. */
 
-    const octokit = new github.GitHub({token: core.getInput("github-token")});
+    const octokit: github.GitHub = new github.GitHub(core.getInput("github-token"));
 
     /* Find the latest milestone version. */
 
     core.info("Trying to find the latest milestone version...");
+
     const ownerWithRepo: string = core.getInput('github-repository');
     const owner: string = ownerWithRepo.split("/")[0];
     const repo: string = ownerWithRepo.split("/")[1];
+
     if (!owner || !repo) {
         core.setFailed(`github-repository was not set as a correct input. Got owner: ${owner} and repo: ${repo}.`);
     }
+
     const latestMilestoneVersion: string = (
         await findLatestVersionFromMilestones(
             (await octokit.issues.listMilestonesForRepo({ owner, repo })).data
         )
     )!;
+
     core.info(`[Found] Latest milestone version found was: ${latestMilestoneVersion}`);
 
     /*
@@ -171,13 +175,16 @@ async function run() {
      */
 
     core.info("Trying to find latest changelog version...");
+
     if (!fs.existsSync(CHANGELOG_FILENAME)) {
         core.warning("Changelog file does not exist. Creating it...");
 
         await exec.exec(`touch ${CHANGELOG_FILENAME}`);
     }
+
     const changelogContents: string = fs.readFileSync(CHANGELOG_GENERATOR_META_FILENAME).toString();
     const latestLogVersion: string = await findLatestVersionFromChangelog(changelogContents) || "0.0.0";
+
     core.info(`[Found] Latest log version found was: ${latestLogVersion}`);
 
     /*
@@ -193,9 +200,11 @@ async function run() {
      */
 
     core.info("Trying to derive latest prepared version...");
+
     const latestPreparedVersion: string = await determineLatestPrepared(
         changelogContents, latestLogVersion, latestTagVersion
     );
+
     core.info(`[Derived] Latest prepared version found was: ${latestPreparedVersion}`);
 
     /*
@@ -203,29 +212,36 @@ async function run() {
      */
 
     core.info("Trying to create/update meta file...");
+
     await updateMetaFile(latestMilestoneVersion, latestPreparedVersion);
+
     core.info('[Task] Meta file successfully created/updated.');
 
     /* Copy existing changelog data, if present. */
 
     core.info("Copying existing changelog data...");
+
     const command: string = "touch CHANGELOG.md && awk \"/## \\[" + latestPreparedVersion +
         "\\]/\,/\\\* \*This Changelog/\" CHANGELOG.md | head -n -1 > HISTORY.md";
     exec.exec(command);
+
     core.info("[Task] Changelog data successfully copied.")
 
     /* Run auto-changelogger. */
 
     core.info(`Running auto-logger for: \`${ownerWithRepo}\`...`);
+
     exec.exec(
         `docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user ` +
         `${owner} --project ${repo}`
     );
+
     core.info("[Task] Autologger run complete.")
 
     /* Clean up. */
 
     core.info("All done with normal tasks, cleaning up...");
+
     fs.writeFileSync(
         CHANGELOG_FILENAME,
         fs.readFileSync(CHANGELOG_FILENAME)
@@ -233,6 +249,7 @@ async function run() {
             .replace(/\n{2,}/gi, "\n\n")
     );
     exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"");
+
     core.info("[Task] Cleanup completed.")
 }
 

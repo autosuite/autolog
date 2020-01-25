@@ -38,8 +38,8 @@ jobs:
       - uses: actions/checkout@master
       - uses: autosuite/autolog@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_repository: ${{ github.repository }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-repository: ${{ github.repository }}
       - uses: autosuite/autocommit@master
       - uses: ad-m/github-push-action@master
         with:
@@ -52,8 +52,8 @@ jobs:
 
 | Variable          | Value                    | Example                     | Default | Required? |
 | ----------------- | ------------------------ | --------------------------- | ------- | --------- |
-| github_token      | The GitHub access token. | ${{ secrets.GITHUB_TOKEN }} | N/A     | Yes.      |
-| github_repository | `group_or_user/repo`.    | ${{ github.repository }}    | N/A     | Yes.      |
+| github-token      | The GitHub access token. | ${{ secrets.GITHUB_TOKEN }} | N/A     | Yes.      |
+| github-repository | `group_or_user/repo`.    | ${{ github.repository }}    | N/A     | Yes.      |
 
 ## Documentation
 
