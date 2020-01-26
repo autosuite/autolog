@@ -193,7 +193,7 @@ function findLatestVersionFromGitTags() {
                     _a = _b.sent();
                     core.warning("Git tags cannot be found. Caller must handle failure outside of function.");
                     return [2 /*return*/, "0.0.0"];
-                case 5: return [2 /*return*/, text];
+                case 5: return [2 /*return*/, text.trim()];
             }
         });
     });
@@ -225,7 +225,7 @@ function run() {
                 case 1: return [4 /*yield*/, _a.apply(void 0, [(_b.sent()).data])];
                 case 2:
                     latestMilestoneVersion = (_b.sent());
-                    core.info("[Found] Latest milestone version found was: " + latestMilestoneVersion);
+                    core.info("[Found] Latest milestone version found was: `" + latestMilestoneVersion + "`");
                     /*
                      * Try to find the latest version in the changelog (not mandatory; default "0.0.0").
                      */
@@ -241,7 +241,7 @@ function run() {
                     return [4 /*yield*/, findLatestVersionFromChangelog(changelogContents)];
                 case 5:
                     latestLogVersion = _b.sent();
-                    core.info("[Found] Latest log version found was: " + latestLogVersion);
+                    core.info("[Found] Latest log version found was: `" + latestLogVersion + "`");
                     /*
                      * Try to find the latest tag version (not mandatory; default to "0.0.0").
                      */
@@ -249,7 +249,7 @@ function run() {
                     return [4 /*yield*/, findLatestVersionFromGitTags()];
                 case 6:
                     latestTagVersion = _b.sent();
-                    core.info("[Found] Latest tag version found was: " + latestTagVersion);
+                    core.info("[Found] Latest tag version found was: `" + latestTagVersion + "`");
                     /*
                      * Try to find the version that will be seen as the last "completed" version.
                      */
@@ -257,7 +257,7 @@ function run() {
                     return [4 /*yield*/, determineLatestPrepared(changelogContents, latestLogVersion, latestTagVersion)];
                 case 7:
                     latestPreparedVersion = _b.sent();
-                    core.info("[Derived] Latest prepared version found was: " + latestPreparedVersion);
+                    core.info("[Derived] Latest prepared version found was: `" + latestPreparedVersion + "`");
                     /*
                      * Try to update the meta file with the latest prepared version.
                      */

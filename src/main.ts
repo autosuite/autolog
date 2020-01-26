@@ -145,7 +145,7 @@ async function findLatestVersionFromGitTags(): Promise<string> {
         return "0.0.0";
     }
 
-    return text;
+    return text.trim();
 }
 
 async function run() {
@@ -180,7 +180,7 @@ async function run() {
         )
     )!;
 
-    core.info(`[Found] Latest milestone version found was: ${latestMilestoneVersion}`);
+    core.info(`[Found] Latest milestone version found was: \`${latestMilestoneVersion}\``);
 
     /*
      * Try to find the latest version in the changelog (not mandatory; default "0.0.0").
@@ -197,7 +197,7 @@ async function run() {
     const changelogContents: string = fs.readFileSync(CHANGELOG_FILENAME).toString();
     const latestLogVersion: string = await findLatestVersionFromChangelog(changelogContents);
 
-    core.info(`[Found] Latest log version found was: ${latestLogVersion}`);
+    core.info(`[Found] Latest log version found was: \`${latestLogVersion}\``);
 
     /*
      * Try to find the latest tag version (not mandatory; default to "0.0.0").
@@ -207,7 +207,7 @@ async function run() {
 
     const latestTagVersion: string = await findLatestVersionFromGitTags();
 
-    core.info(`[Found] Latest tag version found was: ${latestTagVersion}`);
+    core.info(`[Found] Latest tag version found was: \`${latestTagVersion}\``);
 
     /*
      * Try to find the version that will be seen as the last "completed" version.
@@ -219,7 +219,7 @@ async function run() {
         changelogContents, latestLogVersion, latestTagVersion
     );
 
-    core.info(`[Derived] Latest prepared version found was: ${latestPreparedVersion}`);
+    core.info(`[Derived] Latest prepared version found was: \`${latestPreparedVersion}\``);
 
     /*
      * Try to update the meta file with the latest prepared version.
