@@ -175,7 +175,7 @@ function findLatestVersionFromGitTags() {
                     _b.label = 1;
                 case 1:
                     _b.trys.push([1, 4, , 5]);
-                    return [4 /*yield*/, exec.exec("git fetch --depth=1 origin +refs/tags/*:refs/tags/*")];
+                    return [4 /*yield*/, exec.exec("git fetch --depth=1 origin +refs/tags/*:refs/tags/*", [], { silent: true })];
                 case 2:
                     _b.sent();
                     return [4 /*yield*/, exec.exec('git describe --abbrev=0', [], {
@@ -183,7 +183,8 @@ function findLatestVersionFromGitTags() {
                                 stdout: function (data) {
                                     text += data.toString();
                                 }
-                            }
+                            },
+                            silent: true
                         })];
                 case 3:
                     _b.sent();
@@ -267,7 +268,7 @@ function run() {
                     core.info('[Task] Meta file successfully created/updated.');
                     /* Copy existing changelog data, if present. */
                     core.info("Copying existing changelog data...");
-                    return [4 /*yield*/, exec.exec("touch " + CHANGELOG_FILENAME)];
+                    return [4 /*yield*/, exec.exec("touch " + CHANGELOG_FILENAME, [], { silent: true })];
                 case 9:
                     _b.sent();
                     return [4 /*yield*/, exec.exec("awk \"/## \\[" + latestPreparedVersion + "\\]/,/\\* *This Changelog/\" " + CHANGELOG_FILENAME, [], {
@@ -301,9 +302,6 @@ function run() {
                     fs_1.default.writeFileSync(CHANGELOG_FILENAME, fs_1.default.readFileSync(CHANGELOG_FILENAME)
                         .toString()
                         .replace(/\n{2,}/gi, "\n\n"));
-                    return [4 /*yield*/, exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"")];
-                case 12:
-                    _b.sent();
                     core.info("[Task] Cleanup completed.");
                     return [2 /*return*/];
             }

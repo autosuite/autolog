@@ -130,13 +130,14 @@ async function findLatestVersionFromGitTags(): Promise<string> {
     let text: string = "";
 
     try {
-        await exec.exec("git fetch --depth=1 origin +refs/tags/*:refs/tags/*");
+        await exec.exec("git fetch --depth=1 origin +refs/tags/*:refs/tags/*", [], { silent: true });
         await exec.exec('git describe --abbrev=0', [], {
             listeners: {
                 stdout: (data: Buffer) => {
                     text += data.toString();
                 }
-            }
+            },
+            silent: true
         });
     } catch {
         core.warning("Git tags cannot be found. Caller must handle failure outside of function.")
@@ -234,7 +235,7 @@ async function run() {
 
     core.info("Copying existing changelog data...");
 
-    await exec.exec(`touch ${CHANGELOG_FILENAME}`);
+    await exec.exec(`touch ${CHANGELOG_FILENAME}`, [], { silent: true });
     await exec.exec(`awk "/## \\[${latestPreparedVersion}\\]/\,/\\\* \*This Changelog/" ${CHANGELOG_FILENAME}`, [], {
         listeners: {
             stdout: (data: Buffer) => {
@@ -276,7 +277,6 @@ async function run() {
             .toString()
             .replace(/\n{2,}/gi, "\n\n")
     );
-    await exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"");
 
     core.info("[Task] Cleanup completed.");
 }
