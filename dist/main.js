@@ -175,7 +175,7 @@ function findLatestVersionFromGitTags() {
                     _b.label = 1;
                 case 1:
                     _b.trys.push([1, 4, , 5]);
-                    return [4 /*yield*/, exec.exec("git fetch --unshallow --all")];
+                    return [4 /*yield*/, exec.exec("git fetch --depth=1 origin +refs/tags/*:refs/tags/*")];
                 case 2:
                     _b.sent();
                     return [4 /*yield*/, exec.exec('git describe --abbrev=0', [], {
@@ -270,24 +270,20 @@ function run() {
                     return [4 /*yield*/, exec.exec("touch " + CHANGELOG_FILENAME)];
                 case 9:
                     _b.sent();
-                    return [4 /*yield*/, exec.exec("awk \"/## \\[" + latestPreparedVersion + "\\]/,/\\* *This Changelog/\" " + CHANGELOG_FILENAME)];
-                case 10:
-                    _b.sent();
-                    return [4 /*yield*/, exec.exec("head -n -1", [], {
+                    return [4 /*yield*/, exec.exec("awk \"/## \\[" + latestPreparedVersion + "\\]/,/\\* *This Changelog/\" " + CHANGELOG_FILENAME, [], {
                             listeners: {
                                 stdout: function (data) {
-                                    fs_1.default.writeFileSync("HISTORY.md", data.toString());
+                                    fs_1.default.writeFileSync("HISTORY.md", data.toString().replace(/\n.*$/, ''));
                                 }
                             }
                         })];
-                case 11:
+                case 10:
                     _b.sent();
                     core.info("[Task] Changelog data successfully copied.");
                     /* Run auto-changelogger. */
                     core.info("Running auto-logger for: `" + ownerWithRepo + "`...");
-                    return [4 /*yield*/, exec.exec("docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user " +
-                            (owner + " --project " + repo))];
-                case 12:
+                    return [4 /*yield*/, exec.exec("docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user " + owner + " " + ("--project " + repo))];
+                case 11:
                     _b.sent();
                     core.info("[Task] Autologger run complete.");
                     /* Clean up. */
@@ -296,7 +292,7 @@ function run() {
                         .toString()
                         .replace(/\n{2,}/gi, "\n\n"));
                     return [4 /*yield*/, exec.exec("rm HISTORY.md || echo \"No HISTORY.md file was created, therefore it was not deleted.\"")];
-                case 13:
+                case 12:
                     _b.sent();
                     core.info("[Task] Cleanup completed.");
                     return [2 /*return*/];

@@ -130,7 +130,7 @@ async function findLatestVersionFromGitTags(): Promise<string> {
     let text: string = "";
 
     try {
-        await exec.exec("git fetch --unshallow --all");
+        await exec.exec("git fetch --depth=1 origin +refs/tags/*:refs/tags/*");
         await exec.exec('git describe --abbrev=0', [], {
             listeners: {
                 stdout: (data: Buffer) => {
@@ -235,11 +235,10 @@ async function run() {
     core.info("Copying existing changelog data...");
 
     await exec.exec(`touch ${CHANGELOG_FILENAME}`);
-    await exec.exec(`awk "/## \\[${latestPreparedVersion}\\]/\,/\\\* \*This Changelog/" ${CHANGELOG_FILENAME}`);
-    await exec.exec(`head -n -1`, [], {
+    await exec.exec(`awk "/## \\[${latestPreparedVersion}\\]/\,/\\\* \*This Changelog/" ${CHANGELOG_FILENAME}`, [], {
         listeners: {
             stdout: (data: Buffer) => {
-                fs.writeFileSync("HISTORY.md", data.toString());
+                fs.writeFileSync("HISTORY.md", data.toString().replace(/\n.*$/, ''));
             }
         }
     });
@@ -251,8 +250,7 @@ async function run() {
     core.info(`Running auto-logger for: \`${ownerWithRepo}\`...`);
 
     await exec.exec(
-        `docker run --rm -v \"$(pwd)\":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user ` +
-        `${owner} --project ${repo}`
+        `docker run --rm -v "$(pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator --user ${owner} ` + `--project ${repo}`
     );
 
     core.info("[Task] Autologger run complete.");
