@@ -29,6 +29,7 @@ jobs:
       - uses: actions/checkout@v2.0.0
         with:
           fetch-depth: 0
+      - run: git pull --rebase
       - uses: actions/setup-node@v1.1.2
         with:
           node-version: 12.x
@@ -52,6 +53,7 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v2.0.0
+      - run: git pull --rebase
       - uses: autosuite/autobadge@0.1.0
       - uses: autosuite/autoversion@master
       - uses: autosuite/autocommit@master
