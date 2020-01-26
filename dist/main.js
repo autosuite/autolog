@@ -289,7 +289,7 @@ function run() {
                             listeners: {
                                 stdout: function (data) {
                                     return exec.exec("docker run --rm -v \"" + data.toString() + "\":/usr/local/src/your-app ferrarimarco/" +
-                                        ("github-changelog-generator --user " + owner + " --project " + repo), [], { silent: true });
+                                        ("github-changelog-generator --user " + owner + " --project " + repo));
                                 }
                             },
                             silent: true
