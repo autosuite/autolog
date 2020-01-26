@@ -22,7 +22,7 @@ Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-g
 
 ## Usage
 
-> Note: you **must** be using GitHub Milestones as one per version in order for Autologger to work.
+> Note: you **must** be using GitHub Milestones as one per version in order for Autologger to work. Additionally, you **must** fetch all of the commits/up to the tagged commit when checking out (see below).
 
 Simply add this job to a workflow as part of the full Autosuite set or with just the following:
 
@@ -35,7 +35,9 @@ jobs:
   autocommit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2.0.0
+        with:
+          fetch-depth: 0
       - uses: autosuite/autolog@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -45,6 +47,9 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+- Ensure `actions/checkout@v2.0.0` has option `fetch-depth` set to `0`.
+- You may want to add `HISTORY.md` to your `.gitignore`.
 
 ## Configuration
 
