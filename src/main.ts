@@ -31,12 +31,12 @@ const RETAINED_METADATA_REGEX: RegExp = /unreleased.*|base.*|future-release.*|si
 /**
  * The regular expression used to find a version match in the `CHANGELOG.md` file.
  */
-const CHANGELOG_VERSION_REGEX: RegExp = /(?<=## \[)(\d\.\d\.\d)(?=].*)/;
+const CHANGELOG_VERSION_REGEX: RegExp = /(?<=## \[)(v?\d\.\d\.\d)(?=].*)/;
 
 /**
  * The regular expression for the standard SemVer version string.
  */
-const SEMVER_REGEX: RegExp = /\d\.\d\.\d/;
+const SEMVER_REGEX: RegExp = /v?\d\.\d\.\d/;
 
 /**
  * From a GitHub Milestones API response (as JSON), find the latest SemVer version.
@@ -266,12 +266,9 @@ async function run() {
     await exec.exec('pwd', [], {
         listeners: {
             stdout: (data: Buffer) => {
-                console.log(data.toString());
                 exec.exec(
-                    `docker run --rm -v "$(pwd)":/usr/local/src/your-app ferrarimarco/` +
-                    `github-changelog-generator --user ${owner} --project ${repo} --token ${token}`, [], {
-                    silent: true
-                });
+                    `docker run --rm -v ${data.toString().trim()}:/usr/local/src/your-app ferrarimarco/` +
+                    `github-changelog-generator --user ${owner} --project ${repo} --token ${token}`);
             }
         },
         silent: true
