@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/autosuite/autolog/tree/0.2.0) (2020-01-26)
+
+[Full Changelog](https://github.com/autosuite/autolog/compare/0.1.1...0.2.0)
+
+**Implemented enhancements:**
+
+- Improve logging [\#19](https://github.com/autosuite/autolog/issues/19)
+
+**Fixed bugs:**
+
+- Can't read the CHANGELOG.md file for version matching [\#18](https://github.com/autosuite/autolog/issues/18)
+- Handle missing initial CHANGELOG.md [\#13](https://github.com/autosuite/autolog/issues/13)
+
 ## [0.1.1](https://github.com/teaminkling/autologger/tree/0.1.1) (2020-01-25)
 
 **Fixed bugs:**
