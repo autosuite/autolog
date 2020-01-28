@@ -3,7 +3,6 @@ import fs from 'fs';
 import * as core from '@actions/core';
 import * as dotenv from 'dotenv';
 import * as exec from '@actions/exec';
-// import * as io from '@actions/io';
 import * as github from '@actions/github';
 
 import Octokit from '@octokit/rest';
@@ -19,13 +18,15 @@ const CHANGELOG_GENERATOR_META_FILENAME: string = ".github_changelog_generator";
 const CHANGELOG_FILENAME: string = "CHANGELOG.md";
 
 /**
- * The expected name for the history file. This doesn't really matter unless the script breaks in the middle as it is
+ * The expected name for the history file. This doesn't matter unless the script breaks in the middle as it is
  * deleted in each cleanup.
+ *
+ * @type {string}
  */
 const HISTORY_FILENAME: string = "HISTORY.md";
 
 /**
- * A regular expression for all of the metadata not retained (per line) for the changelog generator meta file.
+ * A regular expression for all the metadata not kept (per line) for the changelog generator meta file.
  */
 const RETAINED_METADATA_REGEX: RegExp = /unreleased.*|base.*|future-release.*|since-tag.*/;
 
@@ -42,7 +43,7 @@ const SEMVER_REGEX: RegExp = /v?\d\.\d\.\d/;
 /**
  * From a GitHub Milestones API response (as JSON), find the latest SemVer version.
  *
- * @param milestones the milestones data from the Octokit API
+ * @param milestones the milestone data from the Octokit API.
  */
 async function findLatestVersionFromMilestones(
     milestones: Octokit.IssuesListMilestonesForRepoResponseItem[]
@@ -62,13 +63,13 @@ async function findLatestVersionFromMilestones(
 /**
  * Try to find the latest version section from the changelog.
  *
- * @param changelogContents the contents of the `CHANGELOG.md` file
+ * @param changelogContents The contents of the `CHANGELOG.md` file.
  */
 async function findLatestVersionFromChangelog(changelogContents: string): Promise<string> {
     const foundVersions: RegExpMatchArray | null = changelogContents.match(CHANGELOG_VERSION_REGEX);
 
     if (!foundVersions) {
-        core.warning("Can't find a version in the changelog. This can be okay; setting to `0.0.0`.");
+        core.warning("Cannot find a version in the changelog. This can be okay; setting to `0.0.0`.");
 
         return "0.0.0";
     }
@@ -77,16 +78,18 @@ async function findLatestVersionFromChangelog(changelogContents: string): Promis
 }
 
 /**
- * Decide between using a since-tag of the log version or the tag version. The log version often is a version that is
- * not yet tagged and therefore unreleased (e.g.: the same as the milestones version). The tag version is always a
- * version that is released, but an edge case is that it is not in the `CHANGELOG.md` file for whatever reason.
+ * Decide between using a since-tag of the log version or the tag version.
+ *
+ * The log version is often a version that is not yet tagged and therefore unreleased (e.g., the same as the
+ * milestone's version). The tag version is always a version that is released, but an edge case is that it is not in
+ * the `CHANGELOG.md` file for whatever reason.
  *
  * In conclusion, the tag version should be used unless it is not in the `CHANGELOG.md` file. In that case, the version
  * to be used is the version at the top of the `CHANGELOG.md` file.
  *
- * @param changelogContents the contents of the `CHANGELOG.md` file
- * @param logVersion the log version
- * @param tagVersion the tag version
+ * @param changelogContents The contents of the `CHANGELOG.md` file.
+ * @param logVersion The log version.
+ * @param tagVersion The tag version.
  */
 async function determineLatestPrepared(
     changelogContents: string, logVersion: string, tagVersion: string
@@ -102,8 +105,9 @@ async function determineLatestPrepared(
  * Update or create the meta files required. This involves adding "unreleased", "future-release", and "since-tag". If
  * these flags are already present in the file, they are updated. Otherwise, they are added.
  *
- * @param latestMilestoneVersion
- * @param latestPreparedVersion
+ * @param {string} latestMilestoneVersion
+ * @param {string} latestPreparedVersion
+ * @returns {Promise<void>}
  */
 async function updateMetaFile(latestMilestoneVersion: string, latestPreparedVersion: string): Promise<void> {
     const metaFileContents: string = fs.existsSync(CHANGELOG_GENERATOR_META_FILENAME) ?
@@ -111,7 +115,7 @@ async function updateMetaFile(latestMilestoneVersion: string, latestPreparedVers
 
     let newMetaFileContents: string = "";
 
-    /* Retain some metadata. */
+    /* Keep some metadata. */
 
     metaFileContents.split("\n").forEach((line: string) => {
         if (!line.match(RETAINED_METADATA_REGEX) && line != "") {
@@ -132,7 +136,9 @@ async function updateMetaFile(latestMilestoneVersion: string, latestPreparedVers
 }
 
 /**
- * Using `git` tags, find the latest version if possible. This can exception out.
+ * Using `git` tags, find the latest version (if this is possible).
+ *
+ * @returns {Promise<string>} the latest version (once retrieved).
  */
 async function findLatestVersionFromGitTags(): Promise<string> {
     let text: string = "";
@@ -148,7 +154,7 @@ async function findLatestVersionFromGitTags(): Promise<string> {
             silent: true
         });
     } catch {
-        core.warning("Git tags cannot be found. Caller must handle failure outside of function.")
+        core.warning("Git tags cannot be found. Caller must handle failure outside of function.");
 
         return "0.0.0";
     }
@@ -156,7 +162,7 @@ async function findLatestVersionFromGitTags(): Promise<string> {
     return text.trim();
 }
 
-async function run() {
+async function run(): Promise<void> {
     /* Read in environment variables to `process.env`. */
 
     dotenv.config();
@@ -190,7 +196,7 @@ async function run() {
         await findLatestVersionFromMilestones((await octokit.issues.listMilestonesForRepo({ owner, repo })).data)
     )!;
 
-    core.info(`[Found] Latest milestone version found was: \`${latestMilestoneVersion}\``);
+    core.info(`[Found] The latest milestone version found was: \`${latestMilestoneVersion}\``);
 
     /*
      * Try to find the latest version in the changelog (not mandatory; default "0.0.0").
@@ -207,23 +213,23 @@ async function run() {
     const changelogContents: string = fs.readFileSync(CHANGELOG_FILENAME).toString();
     const latestLogVersion: string = await findLatestVersionFromChangelog(changelogContents);
 
-    core.info(`[Found] Latest log version found was: \`${latestLogVersion}\``);
+    core.info(`[Found] The latest log version found was: \`${latestLogVersion}\``);
 
     /*
      * Try to find the latest tag version (not mandatory; default to "0.0.0").
      */
 
-    core.info("Trying to find the latest tag version...");
+    core.info("Trying to find the latest tag version…");
 
     const latestTagVersion: string = await findLatestVersionFromGitTags();
 
-    core.info(`[Found] Latest tag version found was: \`${latestTagVersion}\``);
+    core.info(`[Found] THe latest tag version found was: \`${latestTagVersion}\``);
 
     /*
      * Try to find the version that will be seen as the last "completed" version.
      */
 
-    core.info("Trying to derive latest prepared version...");
+    core.info("Trying to derive the latest prepared version…");
 
     const latestPreparedVersion: string = await determineLatestPrepared(
         changelogContents, latestLogVersion, latestTagVersion
@@ -235,17 +241,19 @@ async function run() {
      * Try to update the meta file with the latest prepared version.
      */
 
-    core.info("Trying to create/update meta file...");
+    core.info("Trying to create/update meta file…");
 
     await updateMetaFile(latestMilestoneVersion, latestPreparedVersion);
 
     core.info('[Task] Meta file successfully created/updated.');
 
     /*
-     * Copy existing changelog data, if present. TODO: don't use awk for this.
+     * Copy existing changelog data, if present.
+     *
+     * TODO: don't use awk for this.
      */
 
-    core.info("Copying existing changelog data...");
+    core.info("Copying existing changelog data…");
 
     await exec.exec(`awk "/## \\[${latestPreparedVersion}\\]/\,/\\\* \*This Changelog/" ${CHANGELOG_FILENAME}`, [], {
         listeners: {
@@ -261,12 +269,12 @@ async function run() {
     core.info("[Task] Changelog data successfully copied.");
 
     /*
-     * Run auto-changelogger.
+     * Run auto-changelog generating tool.
      *
-     * TODO: We only really need one pwd call. Getting the current absolute directory should be easy.
+     * TODO: We only need one pwd call. Getting the current absolute directory should be easy.
      */
 
-    core.info(`Running auto-logger for: "${ownerWithRepo}"...`);
+    core.info(`Running auto-logger for: "${ownerWithRepo}"…`);
 
     let workingDirectory: string = "";
 
@@ -284,11 +292,11 @@ async function run() {
         `--user ${owner} --project ${repo} --token ${token}`
     );
 
-    core.info("[Task] Autologger run complete.");
+    core.info("[Task] Autolog run is now complete.");
 
     /* Clean up. */
 
-    core.info("All done with normal tasks, cleaning up...");
+    core.info("All finished with normal tasks, cleaning up…");
 
     fs.writeFileSync(
         CHANGELOG_FILENAME,
@@ -302,4 +310,4 @@ async function run() {
     core.info("[Task] Cleanup completed.");
 }
 
-run();
+run().then(_ => {});
