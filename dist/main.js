@@ -182,7 +182,7 @@ function findLatestVersionFromGitTags() {
                     _b.label = 1;
                 case 1:
                     _b.trys.push([1, 4, , 5]);
-                    return [4 /*yield*/, exec.exec("git fetch --depth=1 origin +refs/tags/*:refs/tags/*", [], { silent: true })];
+                    return [4 /*yield*/, exec.exec("git fetch --all", [], { silent: true })];
                 case 2:
                     _b.sent();
                     return [4 /*yield*/, exec.exec('git describe --abbrev=0', [], {

@@ -138,7 +138,7 @@ async function findLatestVersionFromGitTags(): Promise<string> {
     let text: string = "";
 
     try {
-        await exec.exec("git fetch --depth=1 origin +refs/tags/*:refs/tags/*", [], { silent: true });
+        await exec.exec("git fetch --all", [], { silent: true });
         await exec.exec('git describe --abbrev=0', [], {
             listeners: {
                 stdout: (data: Buffer) => {
