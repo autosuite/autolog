@@ -1,2 +1,8 @@
+# IDE
+
+.idea/*
+
+# Environment
+
 HISTORY.md
 .env
