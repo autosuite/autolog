@@ -1,18 +1,19 @@
 # Changelog
 
-## [0.2.0](https://github.com/autosuite/autolog/tree/0.2.0) (2020-01-27)
+## [0.2.0](https://github.com/autosuite/autolog/tree/0.2.0) (2020-01-28)
+
+[Full Changelog](https://github.com/autosuite/autolog/compare/0.1.1...0.2.0)
 
 **Implemented enhancements:**
 
-- Actually use the token when calling the generator, increasing the reliability of the tool.
-- Improve logging. Now it's understandable and not too loud what the app is actually doing!
+- Actually use the token when calling the generator [\#22](https://github.com/autosuite/autolog/issues/22)
+- Improve logging [\#19](https://github.com/autosuite/autolog/issues/19)
 
 **Fixed bugs:**
 
-- Patched a critical bug where we couldn't read the `CHANGELOG.md` file for the most recent version.
-- Documentation had a misspelling of inputs required, meaning things would have failed in a weird way for most users. This has been fixed.
-- The project now handles a missing initial `CHANGELOG.md` file. This is a common potential use case.
-- Async blocking wasn't properly impemented. Now, it is.
+- Can't read the CHANGELOG.md file for version matching [\#18](https://github.com/autosuite/autolog/issues/18)
+- Documentation has a misspelling of inputs required [\#14](https://github.com/autosuite/autolog/issues/14)
+- Handle missing initial CHANGELOG.md [\#13](https://github.com/autosuite/autolog/issues/13)
 
 ## [0.1.1](https://github.com/teaminkling/autologger/tree/0.1.1) (2020-01-25)
 
