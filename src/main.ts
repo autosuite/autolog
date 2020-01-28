@@ -1,6 +1,7 @@
 import fs from 'fs';
 
 import * as core from '@actions/core';
+import * as dotenv from 'dotenv';
 import * as exec from '@actions/exec';
 // import * as io from '@actions/io';
 import * as github from '@actions/github';
@@ -24,7 +25,7 @@ const CHANGELOG_FILENAME: string = "CHANGELOG.md";
 const HISTORY_FILENAME: string = "HISTORY.md";
 
 /**
- * A regular expression for all of the metadata retained (per line) for the changelog generator meta file.
+ * A regular expression for all of the metadata not retained (per line) for the changelog generator meta file.
  */
 const RETAINED_METADATA_REGEX: RegExp = /unreleased.*|base.*|future-release.*|since-tag.*/;
 
@@ -156,9 +157,13 @@ async function findLatestVersionFromGitTags(): Promise<string> {
 }
 
 async function run() {
+    /* Read in environment variables to `process.env`. */
+
+    dotenv.config();
+
     /* Initialise GitHub API instance. TODO: Make this function much shorter. TODO: Handle errors better. */
 
-    const token: string = core.getInput("github-token");
+    const token: string = core.getInput("github-token") || process.env["GITHUB_TOKEN"] || "";
     if (!token) {
         core.setFailed("Please provide the `github-token` input! Ensure the hyphen (-) isn't an underscore (_).");
     }
@@ -169,7 +174,7 @@ async function run() {
 
     core.info("Trying to find the latest milestone version...");
 
-    const ownerWithRepo: string = core.getInput('github-repository');
+    const ownerWithRepo: string = core.getInput('github-repository') || process.env["GITHUB_REPOSITORY"] || "";
     if (!ownerWithRepo) {
         core.setFailed("Please provide the `github-repository` input as \"owner/repo\"!");
     }
@@ -263,16 +268,21 @@ async function run() {
 
     core.info(`Running auto-logger for: "${ownerWithRepo}"...`);
 
+    let workingDirectory: string = "";
+
     await exec.exec('pwd', [], {
         listeners: {
             stdout: (data: Buffer) => {
-                exec.exec(
-                    `docker run --rm -v ${data.toString().trim()}:/usr/local/src/your-app ferrarimarco/` +
-                    `github-changelog-generator --user ${owner} --project ${repo} --token ${token}`);
+                workingDirectory += data.toString().trim()
             }
         },
         silent: true
     });
+
+    await exec.exec(
+        `docker run --rm -v ${workingDirectory}:/usr/local/src/your-app ferrarimarco/github-changelog-generator ` +
+        `--user ${owner} --project ${repo} --token ${token}`
+    );
 
     core.info("[Task] Autologger run complete.");
 

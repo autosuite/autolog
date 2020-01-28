@@ -48,6 +48,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = __importDefault(require("fs"));
 var core = __importStar(require("@actions/core"));
+var dotenv = __importStar(require("dotenv"));
 var exec = __importStar(require("@actions/exec"));
 // import * as io from '@actions/io';
 var github = __importStar(require("@actions/github"));
@@ -65,7 +66,7 @@ var CHANGELOG_FILENAME = "CHANGELOG.md";
  */
 var HISTORY_FILENAME = "HISTORY.md";
 /**
- * A regular expression for all of the metadata retained (per line) for the changelog generator meta file.
+ * A regular expression for all of the metadata not retained (per line) for the changelog generator meta file.
  */
 var RETAINED_METADATA_REGEX = /unreleased.*|base.*|future-release.*|since-tag.*/;
 /**
@@ -206,18 +207,20 @@ function findLatestVersionFromGitTags() {
 }
 function run() {
     return __awaiter(this, void 0, void 0, function () {
-        var token, octokit, ownerWithRepo, owner, repo, latestMilestoneVersion, _a, changelogContents, latestLogVersion, latestTagVersion, latestPreparedVersion;
+        var token, octokit, ownerWithRepo, owner, repo, latestMilestoneVersion, _a, changelogContents, latestLogVersion, latestTagVersion, latestPreparedVersion, workingDirectory;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    token = core.getInput("github-token");
+                    /* Read in environment variables to `process.env`. */
+                    dotenv.config();
+                    token = core.getInput("github-token") || process.env["GITHUB_TOKEN"] || "";
                     if (!token) {
                         core.setFailed("Please provide the `github-token` input! Ensure the hyphen (-) isn't an underscore (_).");
                     }
                     octokit = new github.GitHub(token);
                     /* Find the latest milestone version. Can fail. */
                     core.info("Trying to find the latest milestone version...");
-                    ownerWithRepo = core.getInput('github-repository');
+                    ownerWithRepo = core.getInput('github-repository') || process.env["GITHUB_REPOSITORY"] || "";
                     if (!ownerWithRepo) {
                         core.setFailed("Please provide the `github-repository` input as \"owner/repo\"!");
                     }
@@ -294,16 +297,20 @@ function run() {
                      * TODO: We only really need one pwd call. Getting the current absolute directory should be easy.
                      */
                     core.info("Running auto-logger for: \"" + ownerWithRepo + "\"...");
+                    workingDirectory = "";
                     return [4 /*yield*/, exec.exec('pwd', [], {
                             listeners: {
                                 stdout: function (data) {
-                                    exec.exec("docker run --rm -v " + data.toString().trim() + ":/usr/local/src/your-app ferrarimarco/" +
-                                        ("github-changelog-generator --user " + owner + " --project " + repo + " --token " + token));
+                                    workingDirectory += data.toString().trim();
                                 }
                             },
                             silent: true
                         })];
                 case 10:
+                    _b.sent();
+                    return [4 /*yield*/, exec.exec("docker run --rm -v " + workingDirectory + ":/usr/local/src/your-app ferrarimarco/github-changelog-generator " +
+                            ("--user " + owner + " --project " + repo + " --token " + token))];
+                case 11:
                     _b.sent();
                     core.info("[Task] Autologger run complete.");
                     /* Clean up. */
