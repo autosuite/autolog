@@ -1,31 +1,29 @@
 {
-  "name": "autologger",
+  "name": "autolog",
   "version": "0.2.0",
   "description": "Wrapper for [`github-changelog-generator`](https://github.com/github-changelog-generator/github-changelog-generator) that allows human-readable changelog sections to be retained, to automatically prepare versions based on the most recent SemVer milestone, and to add to a pipeline that performs auto addition, committing, and pushing of changes.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "main": "dist/main.js",
+  "scripts": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/teaminkling/autologger.git"
+    "url": "git+https://github.com/autosuite/autolog.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/teaminkling/autologger/issues"
+    "url": "https://github.com/autosuite/autolog/issues"
   },
-  "homepage": "https://github.com/teaminkling/autologger#readme",
+  "homepage": "https://github.com/autosuite/autolog#readme",
   "dependencies": {
     "@actions/core": "^1.2.0",
     "@actions/exec": "^1.0.3",
     "@actions/github": "^2.1.0",
     "dotenv": "^8.2.0",
-    "null-writable": "^1.0.5",
-    "typescript": "^3.7.5"
+    "null-writable": "^1.0.5"
   },
   "devDependencies": {
-    "@types/node": "^13.5.0"
+    "@types/node": "^13.5.0",
+    "typescript": "^3.7.5"
   }
 }

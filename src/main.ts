@@ -156,7 +156,7 @@ async function findLatestVersionFromGitTags(): Promise<string> {
     return text.trim();
 }
 
-async function run() {
+async function run(): Promise<void> {
     /* Read in environment variables to `process.env`. */
 
     dotenv.config();
