@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/autosuite/autolog/tree/0.2.0) (2020-02-28)
+
+[Full Changelog](https://github.com/autosuite/autolog/compare/0.2.0...0.2.0)
+
+**Implemented enhancements:**
+
+- Sync with base [\#23](https://github.com/autosuite/autolog/issues/23)
+
 ## [0.2.0](https://github.com/autosuite/autolog/tree/0.2.0) (2020-01-27)
 
 **Implemented enhancements:**
