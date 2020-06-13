@@ -1,11 +1,12 @@
 import fs from 'fs';
 
 import * as core from '@actions/core';
-import * as dotenv from 'dotenv';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
 
 import Octokit from '@octokit/rest';
+
+import * as autolib from 'autolib';
 
 /**
  * The filename for the meta file for GitHub Changelog Generator.
@@ -18,10 +19,7 @@ const CHANGELOG_GENERATOR_META_FILENAME: string = ".github_changelog_generator";
 const CHANGELOG_FILENAME: string = "CHANGELOG.md";
 
 /**
- * The expected name for the history file. This doesn't matter unless the script breaks in the middle as it is
- * deleted in each cleanup.
- *
- * @type {string}
+ * The expected name for the history file.
  */
 const HISTORY_FILENAME: string = "HISTORY.md";
 
@@ -36,28 +34,33 @@ const RETAINED_METADATA_REGEX: RegExp = /unreleased.*|base.*|future-release.*|si
 const CHANGELOG_VERSION_REGEX: RegExp = /(?<=## \[)(v?\d\.\d\.\d)(?=].*)/;
 
 /**
- * The regular expression for the standard SemVer version string.
- */
-const SEMVER_REGEX: RegExp = /v?\d\.\d\.\d/;
-
-/**
- * From a GitHub Milestones API response (as JSON), find the latest SemVer version.
+ * From a GitHub Milestones API response, find the latest SemVer version.
  *
- * @param milestones the milestone data from the Octokit API.
+ * @param owner the owner of the repo (or organisation name)
+ * @param repo the repo name
  */
-async function findLatestVersionFromMilestones(
-    milestones: Octokit.IssuesListMilestonesForRepoResponseItem[]
-): Promise<string | null> {
+async function findLatestVersionFromMilestones(owner: string, repo: string): Promise<autolib.SemVer> {
+    const milestones: Octokit.IssuesListMilestonesForRepoResponse = (
+        await new github.GitHub(
+            core.getInput("github-token")
+        ).issues.listMilestonesForRepo({ owner, repo })
+    ).data;
+
     /* The latest milestone is the last one in the array response. */
 
     for (const milestone of milestones) {
-        const versionMatches: RegExpMatchArray | null = milestone.title.match(SEMVER_REGEX);
+        const versionMatches: RegExpMatchArray | null = milestone.title.match(autolib.SEMVER_REGEXP);
+
         if (versionMatches && versionMatches.length == 1) {
-            return versionMatches[0];
+            return autolib.SemVer.constructFromText(versionMatches[0]);
         }
     }
 
-    return null;
+    core.warning(
+        "No milestones have been found. Consider running autosuite/automilestone before autolog! Returning 0.0.0."
+    )
+
+    return autolib.SemVer.constructZero();
 }
 
 /**
@@ -65,36 +68,38 @@ async function findLatestVersionFromMilestones(
  *
  * @param changelogContents The contents of the `CHANGELOG.md` file.
  */
-async function findLatestVersionFromChangelog(changelogContents: string): Promise<string> {
+async function findLatestVersionFromChangelog(changelogContents: string): Promise<autolib.SemVer> {
     const foundVersions: RegExpMatchArray | null = changelogContents.match(CHANGELOG_VERSION_REGEX);
 
     if (!foundVersions) {
         core.warning("Cannot find a version in the changelog. This can be okay; setting to `0.0.0`.");
 
-        return "0.0.0";
+        return autolib.SemVer.constructZero();
     }
 
-    return foundVersions[0];
+    /* If something is found, grab the top-most version only. */
+
+    return autolib.SemVer.constructFromText(foundVersions[0]);
 }
 
 /**
- * Decide between using a since-tag of the log version or the tag version.
+ * Decide between using a "since-tag" of the log version or the tag version.
  *
  * The log version is often a version that is not yet tagged and therefore unreleased (e.g., the same as the
  * milestone's version). The tag version is always a version that is released, but an edge case is that it is not in
  * the `CHANGELOG.md` file for whatever reason.
  *
- * In conclusion, the tag version should be used unless it is not in the `CHANGELOG.md` file. In that case, the version
- * to be used is the version at the top of the `CHANGELOG.md` file.
+ * In other words, the tag version should be used unless it is not in the `CHANGELOG.md` file. In that case, the
+ * version to be used is the version at the top of the `CHANGELOG.md` file.
  *
- * @param changelogContents The contents of the `CHANGELOG.md` file.
- * @param logVersion The log version.
- * @param tagVersion The tag version.
+ * @param logContents the contents of the `CHANGELOG.md` file
+ * @param logVersion the log version
+ * @param tagVersion Tte tag version
  */
 async function determineLatestPrepared(
-    changelogContents: string, logVersion: string, tagVersion: string
-): Promise<string> {
-    if (changelogContents.includes(tagVersion)) {
+    logContents: string, logVersion: autolib.SemVer, tagVersion: autolib.SemVer
+): Promise<autolib.SemVer> {
+    if (logContents.includes(tagVersion.toString())) {
         return tagVersion;
     }
 
@@ -102,16 +107,23 @@ async function determineLatestPrepared(
 }
 
 /**
- * Update or create the meta files required. This involves adding "unreleased", "future-release", and "since-tag". If
- * these flags are already present in the file, they are updated. Otherwise, they are added.
+ * Update or create the meta files required. This involves adding "unreleased", "future-release", and "since-tag".
  *
- * @param {string} latestMilestoneVersion
- * @param {string} latestPreparedVersion
- * @returns {Promise<void>}
+ * If these flags are already present in the file, they are updated. Otherwise, they are added.
+ *
+ * @param latestMilestoneVersion the latest milestone version
+ * @param latestPreparedVersion the latest "prepared" version
  */
-async function updateMetaFile(latestMilestoneVersion: string, latestPreparedVersion: string): Promise<void> {
-    const metaFileContents: string = fs.existsSync(CHANGELOG_GENERATOR_META_FILENAME) ?
-        fs.readFileSync(CHANGELOG_GENERATOR_META_FILENAME).toString() : "";
+async function updateMetaFile(
+    latestMilestoneVersion: autolib.SemVer, latestPreparedVersion: autolib.SemVer
+): Promise<void> {
+    /* Ensure file exists then read from it. */
+
+    await exec.exec(`touch ${CHANGELOG_GENERATOR_META_FILENAME}`);
+
+    const metaFileContents: string = fs.readFileSync(CHANGELOG_GENERATOR_META_FILENAME).toString();
+
+    /* This file contents replace is more complex than is found in autolib, so we do it manually. */
 
     let newMetaFileContents: string = "";
 
@@ -128,163 +140,114 @@ async function updateMetaFile(latestMilestoneVersion: string, latestPreparedVers
     newMetaFileContents += `base=${HISTORY_FILENAME}\n`;
     newMetaFileContents += `future-release=${latestMilestoneVersion}\n`;
 
-    if (latestPreparedVersion != "0.0.0") {
+    if (!latestPreparedVersion.isZero()) {
         newMetaFileContents += `since-tag=${latestPreparedVersion}\n`;
     }
 
     fs.writeFileSync(CHANGELOG_GENERATOR_META_FILENAME, newMetaFileContents);
 }
 
-/**
- * Using `git` tags, find the latest version (if this is possible).
- *
- * @returns {Promise<string>} the latest version (once retrieved).
- */
-async function findLatestVersionFromGitTags(): Promise<string> {
-    let text: string = "";
-
-    try {
-        await exec.exec("git fetch --all", [], { silent: true });
-        await exec.exec('git describe --abbrev=0', [], {
-            listeners: {
-                stdout: (data: Buffer) => {
-                    text += data.toString();
-                }
-            },
-            silent: true
-        });
-    } catch {
-        core.warning("Git tags cannot be found. Caller must handle failure outside of function.");
-
-        return "0.0.0";
-    }
-
-    return text.trim();
-}
-
 async function run(): Promise<void> {
-    /* Read in environment variables to `process.env`. */
+    /* Capture and process all input info, failing if needed. */
 
-    dotenv.config();
+    const token: string = core.getInput("github-token");
+    const ownerWithRepo: string = core.getInput('github-repository');
 
-    /* Initialise GitHub API instance. TODO: Make this function much shorter. TODO: Handle errors better. */
+    const owner: string = ownerWithRepo.split("/")[0];
+    const repo: string = ownerWithRepo.split("/")[1];
 
-    const token: string = core.getInput("github-token") || process.env["GITHUB_TOKEN"] || "";
     if (!token) {
         core.setFailed("Please provide the `github-token` input! Ensure the hyphen (-) isn't an underscore (_).");
     }
 
-    const octokit: github.GitHub = new github.GitHub(token);
-
-    /* Find the latest milestone version. Can fail. */
-
-    core.info("Trying to find the latest milestone version...");
-
-    const ownerWithRepo: string = core.getInput('github-repository') || process.env["GITHUB_REPOSITORY"] || "";
     if (!ownerWithRepo) {
         core.setFailed("Please provide the `github-repository` input as \"owner/repo\"!");
     }
-
-    const owner: string = ownerWithRepo.split("/")[0];
-    const repo: string = ownerWithRepo.split("/")[1];
 
     if (!owner || !repo) {
         core.setFailed(`github-repository was not correctly set. Got owner: ${owner} and repo: ${repo}.`);
     }
 
-    const latestMilestoneVersion: string = (
-        await findLatestVersionFromMilestones((await octokit.issues.listMilestonesForRepo({ owner, repo })).data)
-    )!;
+    /* Read the current changelog. */
+
+    await exec.exec(`touch ${CHANGELOG_FILENAME}`);
+
+    const changelogContents: string = fs.readFileSync(CHANGELOG_FILENAME).toString();
+
+    /* Find the latest milestone version. Can fail if a milestone has not been found. */
+
+    core.info("Trying to find the latest milestone version.");
+
+    const latestMilestoneVersion: autolib.SemVer = await findLatestVersionFromMilestones(owner, repo);
+
+    if (latestMilestoneVersion.isZero()) {
+        core.setFailed("No milestones found. At least one milestone must exist if you use autolog!");
+    }
 
     core.info(`[Found] The latest milestone version found was: \`${latestMilestoneVersion}\``);
 
-    /*
-     * Try to find the latest version in the changelog (not mandatory; default "0.0.0").
-     */
+    /* Try to find the latest version in the changelog (not mandatory; default "0.0.0"). */
 
-    core.info("Trying to find latest changelog version...");
+    core.info("Trying to find latest changelog version.");
 
-    if (!fs.existsSync(CHANGELOG_FILENAME)) {
-        core.warning("Changelog file does not exist. Creating it...");
-
-        await exec.exec(`touch ${CHANGELOG_FILENAME}`);
-    }
-
-    const changelogContents: string = fs.readFileSync(CHANGELOG_FILENAME).toString();
-    const latestLogVersion: string = await findLatestVersionFromChangelog(changelogContents);
+    const latestLogVersion: autolib.SemVer = await findLatestVersionFromChangelog(changelogContents);
 
     core.info(`[Found] The latest log version found was: \`${latestLogVersion}\``);
 
-    /*
-     * Try to find the latest tag version (not mandatory; default to "0.0.0").
-     */
+    /* ry to find the latest tag version (not mandatory; default to "0.0.0"). */
 
-    core.info("Trying to find the latest tag version…");
+    core.info("Trying to find the latest tag version.");
 
-    const latestTagVersion: string = await findLatestVersionFromGitTags();
+    const latestTagVersion: autolib.SemVer = await autolib.findLatestVersionFromGitTags(true);
 
     core.info(`[Found] THe latest tag version found was: \`${latestTagVersion}\``);
 
-    /*
-     * Try to find the version that will be seen as the last "completed" version.
-     */
+    /* Try to find the version that will be seen as the last "completed"/"prepared" version. */
 
     core.info("Trying to derive the latest prepared version…");
 
-    const latestPreparedVersion: string = await determineLatestPrepared(
-        changelogContents, latestLogVersion, latestTagVersion
+    const latestPreparedVersion: autolib.SemVer = await determineLatestPrepared(
+        changelogContents, latestLogVersion, latestTagVersion,
     );
 
     core.info(`[Derived] Latest prepared version found was: \`${latestPreparedVersion}\``);
 
-    /*
-     * Try to update the meta file with the latest prepared version.
-     */
+    /* Try to update the meta file with the latest prepared version. */
 
-    core.info("Trying to create/update meta file…");
+    core.info("Trying to create/update meta file.");
 
     await updateMetaFile(latestMilestoneVersion, latestPreparedVersion);
 
     core.info('[Task] Meta file successfully created/updated.');
 
-    /*
-     * Copy existing changelog data, if present.
-     *
-     * TODO: don't use awk for this.
-     */
+    /* Copy existing changelog data, if present. */
 
-    core.info("Copying existing changelog data…");
+    core.info("Copying existing changelog data.");
 
     await exec.exec(`awk "/## \\[${latestPreparedVersion}\\]/\,/\\\* \*This Changelog/" ${CHANGELOG_FILENAME}`, [], {
         listeners: {
             stdout: (data: Buffer) => {
-                /* Leave out the last line: the "autogenerated" line. */
+                /* Write copy and leave out the last "autogenerated" line. */
 
                 fs.writeFileSync(HISTORY_FILENAME, data.toString().trim().replace(/\n.*$/, "").trim());
             }
         },
-        silent: true
     });
 
     core.info("[Task] Changelog data successfully copied.");
 
-    /*
-     * Run auto-changelog generating tool.
-     *
-     * TODO: We only need one pwd call. Getting the current absolute directory should be easy.
-     */
+    /* Run auto-changelog generating tool. */
 
-    core.info(`Running auto-logger for: "${ownerWithRepo}"…`);
+    core.info(`Running auto-logger for: "${ownerWithRepo}".`);
 
     let workingDirectory: string = "";
 
     await exec.exec('pwd', [], {
         listeners: {
             stdout: (data: Buffer) => {
-                workingDirectory += data.toString().trim()
+                workingDirectory = data.toString().trim();
             }
         },
-        silent: true
     });
 
     await exec.exec(
@@ -296,18 +259,11 @@ async function run(): Promise<void> {
 
     /* Clean up. */
 
-    core.info("All finished with normal tasks, cleaning up…");
+    core.info("All finished with normal tasks, cleaning up.");
 
-    fs.writeFileSync(
-        CHANGELOG_FILENAME,
-        fs.readFileSync(CHANGELOG_FILENAME)
-            .toString()
-            .replace(/\n{2,}/gi, "\n\n")
-    );
-
-    /* TODO: Delete the history file. */
+    autolib.rewriteFileContentsWithReplacement(CHANGELOG_FILENAME, /\n{2,}/gi, "\n\n");
 
     core.info("[Task] Cleanup completed.");
 }
 
-run().then(_ => {});
+run();
