@@ -63,15 +63,15 @@ function findLatestVersionFromMilestones(owner, repo) {
             switch (_a.label) {
                 case 0: return [4, new github.GitHub(core.getInput("github-token")).issues.listMilestonesForRepo({ owner: owner, repo: repo })];
                 case 1:
-                    milestones = (_a.sent()).data;
+                    milestones = (_a.sent()).data.map(function (milestone) { return milestone.title; });
                     for (_i = 0, milestones_1 = milestones; _i < milestones_1.length; _i++) {
                         milestone = milestones_1[_i];
-                        versionMatches = milestone.title.match(autolib.SEMVER_REGEXP);
+                        versionMatches = milestone.match(autolib.SEMVER_REGEXP);
                         if (versionMatches && versionMatches.length == 1) {
                             return [2, autolib.SemVer.constructFromText(versionMatches[0])];
                         }
                     }
-                    core.warning("No milestones have been found. Consider running autosuite/automilestone before autolog! Returning 0.0.0.");
+                    core.warning("No milestones have been found. Returning 0.0.0.");
                     return [2, autolib.SemVer.constructZero()];
             }
         });
@@ -83,7 +83,7 @@ function findLatestVersionFromChangelog(changelogContents) {
         return __generator(this, function (_a) {
             foundVersions = changelogContents.match(CHANGELOG_VERSION_REGEX);
             if (!foundVersions) {
-                core.warning("Cannot find a version in the changelog. This can be okay; setting to `0.0.0`.");
+                core.info("Cannot find a version in the changelog. This is probably okay. Setting to 0.0.0.");
                 return [2, autolib.SemVer.constructZero()];
             }
             return [2, autolib.SemVer.constructFromText(foundVersions[0])];
@@ -154,7 +154,7 @@ function run() {
                 case 2:
                     latestMilestoneVersion = _a.sent();
                     if (latestMilestoneVersion.isZero()) {
-                        core.setFailed("No milestones found. At least one milestone must exist if you use autolog!");
+                        core.setFailed("0.0.0 is not a valid milestone and it is the only valid existing open milestone!");
                     }
                     core.info("[Found] The latest milestone version found was: `" + latestMilestoneVersion + "`");
                     core.info("Trying to find latest changelog version.");
