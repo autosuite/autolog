@@ -166,7 +166,7 @@ function run() {
                     return [4, autolib.findLatestVersionFromGitTags(true)];
                 case 4:
                     latestTagVersion = _a.sent();
-                    core.info("[Found] THe latest tag version found was: `" + latestTagVersion + "`");
+                    core.info("[Found] The latest tag version found was: `" + latestTagVersion + "`");
                     core.info("Trying to derive the latest prepared version…");
                     return [4, determineLatestPrepared(changelogContents, latestLogVersion, latestTagVersion)];
                 case 5:
