@@ -99,7 +99,13 @@ export class SemVer {
     }
 
     toString() {
-        return `${this.major}.${this.minor}.${this.patch}${this.info}`;
+        let representation: string = `${this.major}.${this.minor}.${this.patch}`;
+
+        if (this.info) {
+            return `${representation}${this.info}`;
+        }
+
+        return representation;
     }
 };
 

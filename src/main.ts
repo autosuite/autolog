@@ -67,7 +67,7 @@ async function findLatestVersionFromChangelog(changelogContents: string): Promis
         return autolib.SemVer.constructZero();
     }
 
-    /* If something is found, grab the top-most version only. */
+    /* If something is found, grab the top-most version only. Only allows stable. */
 
     return autolib.SemVer.constructFromText(foundVersions[0]);
 }
@@ -190,7 +190,7 @@ async function run(): Promise<void> {
 
     const latestTagVersion: autolib.SemVer = await autolib.findLatestVersionFromGitTags(true);
 
-    core.info(`[Found] THe latest tag version found was: \`${latestTagVersion}\``);
+    core.info(`[Found] The latest tag version found was: \`${latestTagVersion}\``);
 
     /* Try to find the version that will be seen as the last "completed"/"prepared" version. */
 
