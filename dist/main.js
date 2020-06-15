@@ -48,27 +48,32 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = __importDefault(require("fs"));
 var core = __importStar(require("@actions/core"));
-var dotenv = __importStar(require("dotenv"));
 var exec = __importStar(require("@actions/exec"));
 var github = __importStar(require("@actions/github"));
+var autolib = __importStar(require("@teaminkling/autolib"));
 var CHANGELOG_GENERATOR_META_FILENAME = ".github_changelog_generator";
 var CHANGELOG_FILENAME = "CHANGELOG.md";
 var HISTORY_FILENAME = "HISTORY.md";
 var RETAINED_METADATA_REGEX = /unreleased.*|base.*|future-release.*|since-tag.*/;
 var CHANGELOG_VERSION_REGEX = /(?<=## \[)(v?\d\.\d\.\d)(?=].*)/;
-var SEMVER_REGEX = /v?\d\.\d\.\d/;
-function findLatestVersionFromMilestones(milestones) {
+function findLatestVersionFromMilestones(owner, repo) {
     return __awaiter(this, void 0, void 0, function () {
-        var _i, milestones_1, milestone, versionMatches;
+        var milestones, _i, milestones_1, milestone, versionMatches;
         return __generator(this, function (_a) {
-            for (_i = 0, milestones_1 = milestones; _i < milestones_1.length; _i++) {
-                milestone = milestones_1[_i];
-                versionMatches = milestone.title.match(SEMVER_REGEX);
-                if (versionMatches && versionMatches.length == 1) {
-                    return [2, versionMatches[0]];
-                }
+            switch (_a.label) {
+                case 0: return [4, new github.GitHub(core.getInput("github-token")).issues.listMilestonesForRepo({ owner: owner, repo: repo })];
+                case 1:
+                    milestones = (_a.sent()).data;
+                    for (_i = 0, milestones_1 = milestones; _i < milestones_1.length; _i++) {
+                        milestone = milestones_1[_i];
+                        versionMatches = milestone.title.match(autolib.SEMVER_REGEXP);
+                        if (versionMatches && versionMatches.length == 1) {
+                            return [2, autolib.SemVer.constructFromText(versionMatches[0])];
+                        }
+                    }
+                    core.warning("No milestones have been found. Consider running autosuite/automilestone before autolog! Returning 0.0.0.");
+                    return [2, autolib.SemVer.constructZero()];
             }
-            return [2, null];
         });
     });
 }
@@ -79,16 +84,16 @@ function findLatestVersionFromChangelog(changelogContents) {
             foundVersions = changelogContents.match(CHANGELOG_VERSION_REGEX);
             if (!foundVersions) {
                 core.warning("Cannot find a version in the changelog. This can be okay; setting to `0.0.0`.");
-                return [2, "0.0.0"];
+                return [2, autolib.SemVer.constructZero()];
             }
-            return [2, foundVersions[0]];
+            return [2, autolib.SemVer.constructFromText(foundVersions[0])];
         });
     });
 }
-function determineLatestPrepared(changelogContents, logVersion, tagVersion) {
+function determineLatestPrepared(logContents, logVersion, tagVersion) {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
-            if (changelogContents.includes(tagVersion)) {
+            if (logContents.includes(tagVersion.toString())) {
                 return [2, tagVersion];
             }
             return [2, logVersion];
@@ -99,150 +104,112 @@ function updateMetaFile(latestMilestoneVersion, latestPreparedVersion) {
     return __awaiter(this, void 0, void 0, function () {
         var metaFileContents, newMetaFileContents;
         return __generator(this, function (_a) {
-            metaFileContents = fs_1.default.existsSync(CHANGELOG_GENERATOR_META_FILENAME) ?
-                fs_1.default.readFileSync(CHANGELOG_GENERATOR_META_FILENAME).toString() : "";
-            newMetaFileContents = "";
-            metaFileContents.split("\n").forEach(function (line) {
-                if (!line.match(RETAINED_METADATA_REGEX) && line != "") {
-                    newMetaFileContents += line + "\n";
-                }
-            });
-            newMetaFileContents += "base=" + HISTORY_FILENAME + "\n";
-            newMetaFileContents += "future-release=" + latestMilestoneVersion + "\n";
-            if (latestPreparedVersion != "0.0.0") {
-                newMetaFileContents += "since-tag=" + latestPreparedVersion + "\n";
-            }
-            fs_1.default.writeFileSync(CHANGELOG_GENERATOR_META_FILENAME, newMetaFileContents);
-            return [2];
-        });
-    });
-}
-function findLatestVersionFromGitTags() {
-    return __awaiter(this, void 0, void 0, function () {
-        var text, _a;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
-                case 0:
-                    text = "";
-                    _b.label = 1;
+            switch (_a.label) {
+                case 0: return [4, exec.exec("touch " + CHANGELOG_GENERATOR_META_FILENAME)];
                 case 1:
-                    _b.trys.push([1, 4, , 5]);
-                    return [4, exec.exec("git fetch --all", [], { silent: true })];
-                case 2:
-                    _b.sent();
-                    return [4, exec.exec('git describe --abbrev=0', [], {
-                            listeners: {
-                                stdout: function (data) {
-                                    text += data.toString();
-                                }
-                            },
-                            silent: true
-                        })];
-                case 3:
-                    _b.sent();
-                    return [3, 5];
-                case 4:
-                    _a = _b.sent();
-                    core.warning("Git tags cannot be found. Caller must handle failure outside of function.");
-                    return [2, "0.0.0"];
-                case 5: return [2, text.trim()];
+                    _a.sent();
+                    metaFileContents = fs_1.default.readFileSync(CHANGELOG_GENERATOR_META_FILENAME).toString();
+                    newMetaFileContents = "";
+                    metaFileContents.split("\n").forEach(function (line) {
+                        if (!line.match(RETAINED_METADATA_REGEX) && line != "") {
+                            newMetaFileContents += line + "\n";
+                        }
+                    });
+                    newMetaFileContents += "base=" + HISTORY_FILENAME + "\n";
+                    newMetaFileContents += "future-release=" + latestMilestoneVersion + "\n";
+                    if (!latestPreparedVersion.isZero()) {
+                        newMetaFileContents += "since-tag=" + latestPreparedVersion + "\n";
+                    }
+                    fs_1.default.writeFileSync(CHANGELOG_GENERATOR_META_FILENAME, newMetaFileContents);
+                    return [2];
             }
         });
     });
 }
 function run() {
     return __awaiter(this, void 0, void 0, function () {
-        var token, octokit, ownerWithRepo, owner, repo, latestMilestoneVersion, _a, changelogContents, latestLogVersion, latestTagVersion, latestPreparedVersion, workingDirectory;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
+        var token, ownerWithRepo, owner, repo, changelogContents, latestMilestoneVersion, latestLogVersion, latestTagVersion, latestPreparedVersion, workingDirectory;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0:
-                    dotenv.config();
-                    token = core.getInput("github-token") || process.env["GITHUB_TOKEN"] || "";
+                    token = core.getInput("github-token");
+                    ownerWithRepo = core.getInput('github-repository');
+                    owner = ownerWithRepo.split("/")[0];
+                    repo = ownerWithRepo.split("/")[1];
                     if (!token) {
                         core.setFailed("Please provide the `github-token` input! Ensure the hyphen (-) isn't an underscore (_).");
                     }
-                    octokit = new github.GitHub(token);
-                    core.info("Trying to find the latest milestone version...");
-                    ownerWithRepo = core.getInput('github-repository') || process.env["GITHUB_REPOSITORY"] || "";
                     if (!ownerWithRepo) {
                         core.setFailed("Please provide the `github-repository` input as \"owner/repo\"!");
                     }
-                    owner = ownerWithRepo.split("/")[0];
-                    repo = ownerWithRepo.split("/")[1];
                     if (!owner || !repo) {
                         core.setFailed("github-repository was not correctly set. Got owner: " + owner + " and repo: " + repo + ".");
                     }
-                    _a = findLatestVersionFromMilestones;
-                    return [4, octokit.issues.listMilestonesForRepo({ owner: owner, repo: repo })];
-                case 1: return [4, _a.apply(void 0, [(_b.sent()).data])];
-                case 2:
-                    latestMilestoneVersion = (_b.sent());
-                    core.info("[Found] The latest milestone version found was: `" + latestMilestoneVersion + "`");
-                    core.info("Trying to find latest changelog version...");
-                    if (!!fs_1.default.existsSync(CHANGELOG_FILENAME)) return [3, 4];
-                    core.warning("Changelog file does not exist. Creating it...");
                     return [4, exec.exec("touch " + CHANGELOG_FILENAME)];
-                case 3:
-                    _b.sent();
-                    _b.label = 4;
-                case 4:
+                case 1:
+                    _a.sent();
                     changelogContents = fs_1.default.readFileSync(CHANGELOG_FILENAME).toString();
+                    core.info("Trying to find the latest milestone version.");
+                    return [4, findLatestVersionFromMilestones(owner, repo)];
+                case 2:
+                    latestMilestoneVersion = _a.sent();
+                    if (latestMilestoneVersion.isZero()) {
+                        core.setFailed("No milestones found. At least one milestone must exist if you use autolog!");
+                    }
+                    core.info("[Found] The latest milestone version found was: `" + latestMilestoneVersion + "`");
+                    core.info("Trying to find latest changelog version.");
                     return [4, findLatestVersionFromChangelog(changelogContents)];
-                case 5:
-                    latestLogVersion = _b.sent();
+                case 3:
+                    latestLogVersion = _a.sent();
                     core.info("[Found] The latest log version found was: `" + latestLogVersion + "`");
-                    core.info("Trying to find the latest tag version…");
-                    return [4, findLatestVersionFromGitTags()];
-                case 6:
-                    latestTagVersion = _b.sent();
+                    core.info("Trying to find the latest tag version.");
+                    return [4, autolib.findLatestVersionFromGitTags(true)];
+                case 4:
+                    latestTagVersion = _a.sent();
                     core.info("[Found] THe latest tag version found was: `" + latestTagVersion + "`");
                     core.info("Trying to derive the latest prepared version…");
                     return [4, determineLatestPrepared(changelogContents, latestLogVersion, latestTagVersion)];
-                case 7:
-                    latestPreparedVersion = _b.sent();
+                case 5:
+                    latestPreparedVersion = _a.sent();
                     core.info("[Derived] Latest prepared version found was: `" + latestPreparedVersion + "`");
-                    core.info("Trying to create/update meta file…");
+                    core.info("Trying to create/update meta file.");
                     return [4, updateMetaFile(latestMilestoneVersion, latestPreparedVersion)];
-                case 8:
-                    _b.sent();
+                case 6:
+                    _a.sent();
                     core.info('[Task] Meta file successfully created/updated.');
-                    core.info("Copying existing changelog data…");
+                    core.info("Copying existing changelog data.");
                     return [4, exec.exec("awk \"/## \\[" + latestPreparedVersion + "\\]/,/\\* *This Changelog/\" " + CHANGELOG_FILENAME, [], {
                             listeners: {
                                 stdout: function (data) {
                                     fs_1.default.writeFileSync(HISTORY_FILENAME, data.toString().trim().replace(/\n.*$/, "").trim());
                                 }
                             },
-                            silent: true
                         })];
-                case 9:
-                    _b.sent();
+                case 7:
+                    _a.sent();
                     core.info("[Task] Changelog data successfully copied.");
-                    core.info("Running auto-logger for: \"" + ownerWithRepo + "\"\u2026");
+                    core.info("Running auto-logger for: \"" + ownerWithRepo + "\".");
                     workingDirectory = "";
                     return [4, exec.exec('pwd', [], {
                             listeners: {
                                 stdout: function (data) {
-                                    workingDirectory += data.toString().trim();
+                                    workingDirectory = data.toString().trim();
                                 }
                             },
-                            silent: true
                         })];
-                case 10:
-                    _b.sent();
+                case 8:
+                    _a.sent();
                     return [4, exec.exec("docker run --rm -v " + workingDirectory + ":/usr/local/src/your-app ferrarimarco/github-changelog-generator " +
                             ("--user " + owner + " --project " + repo + " --token " + token))];
-                case 11:
-                    _b.sent();
+                case 9:
+                    _a.sent();
                     core.info("[Task] Autolog run is now complete.");
-                    core.info("All finished with normal tasks, cleaning up…");
-                    fs_1.default.writeFileSync(CHANGELOG_FILENAME, fs_1.default.readFileSync(CHANGELOG_FILENAME)
-                        .toString()
-                        .replace(/\n{2,}/gi, "\n\n"));
+                    core.info("All finished with normal tasks, cleaning up.");
+                    autolib.rewriteFileContentsWithReplacement(CHANGELOG_FILENAME, /\n{2,}/gi, "\n\n");
                     core.info("[Task] Cleanup completed.");
                     return [2];
             }
         });
     });
 }
-run().then(function (_) { });
+run();

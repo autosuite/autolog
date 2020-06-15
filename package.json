@@ -20,9 +20,7 @@
     "@actions/core": "^1.2.0",
     "@actions/exec": "^1.0.3",
     "@actions/github": "^2.1.0",
-    "@teaminkling/autolib": "^0.1.1",
-    "dotenv": "^8.2.0",
-    "null-writable": "^1.0.5"
+    "@teaminkling/autolib": "^0.1.2"
   },
   "devDependencies": {
     "@types/node": "^13.5.0",

@@ -19,7 +19,7 @@ import * as exec from '@actions/exec';
  * - `2`: `5`
  * - `3`: `-beta+17-2020-05-12`
  */
-export const SEMVER_REGEXP: RegExp = /v?(\d)\.(\d)\.\d)(.*)/;
+export const SEMVER_REGEXP: RegExp = /v?(\d)\.(\d)\.(\d)(.*)/;
 
 /*
  * -------------------------------------------------------------------------------------------------------------------
@@ -27,7 +27,7 @@ export const SEMVER_REGEXP: RegExp = /v?(\d)\.(\d)\.\d)(.*)/;
  * -------------------------------------------------------------------------------------------------------------------
  */
 
-/** A [[RegExp]] to [[string]] replacement map for use on a file. */
+/** A [RegExp] to [string] replacement map for use on a file. */
 export class ReplacementMap {
     /** The regular expression to match and replace. */
     matcher: RegExp;
@@ -153,7 +153,7 @@ export async function rewriteFileContentsWithReplacement(
 }
 
 /**
- * Given [[string]] of newline-delimited tags, find the latest SemVer tag and return it.
+ * Given [string] of newline-delimited tags, find the latest SemVer tag and return it.
  *
  * We need to iterate all anyway to ignore all the useless values, so let's not define a comparator.
  *
@@ -161,7 +161,7 @@ export async function rewriteFileContentsWithReplacement(
  *
  * @param tags the tags from which to find the latest SemVer version
  * @param stableOnly if the function should ignore all prerelease/build info-appended versions
- * @returns a SemVer representation as a 4-ary [[Tuple]] of 3 [[number]]s and 1 optional [[string]]
+ * @returns a SemVer representation as a 4-ary [Tuple] of 3 [number]s and 1 optional [string]
  */
 export async function findLatestSemVerUsingString(tags: string, stableOnly: boolean): Promise<SemVer> {
     let largestSeen: SemVer = new SemVer(0, 0, 0, null);
