@@ -6,31 +6,21 @@ import * as github from '@actions/github';
 
 import Octokit from '@octokit/rest';
 
-import * as autolib from 'autolib';
+import * as autolib from '@teaminkling/autolib';
 
-/**
- * The filename for the meta file for GitHub Changelog Generator.
- */
+/** The filename for the meta file for GitHub Changelog Generator. */
 const CHANGELOG_GENERATOR_META_FILENAME: string = ".github_changelog_generator";
 
-/**
- * The expected name for the changelog file.
- */
+/** The expected name for the changelog file. */
 const CHANGELOG_FILENAME: string = "CHANGELOG.md";
 
-/**
- * The expected name for the history file.
- */
+/** The expected name for the history file. */
 const HISTORY_FILENAME: string = "HISTORY.md";
 
-/**
- * A regular expression for all the metadata not kept (per line) for the changelog generator meta file.
- */
+/** A regular expression for all the metadata not kept (per line) for the changelog generator meta file. */
 const RETAINED_METADATA_REGEX: RegExp = /unreleased.*|base.*|future-release.*|since-tag.*/;
 
-/**
- * The regular expression used to find a version match in the `CHANGELOG.md` file.
- */
+/** The regular expression used to find a version match in the `CHANGELOG.md` file. */
 const CHANGELOG_VERSION_REGEX: RegExp = /(?<=## \[)(v?\d\.\d\.\d)(?=].*)/;
 
 /**
