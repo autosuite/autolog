@@ -1,0 +1,13 @@
+name: Automate Issue Quality and Branch Creation (autosuite).
+
+on:
+  issues:
+    types: [assigned]
+
+jobs:
+  autoissue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: autosuite/autobranch@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

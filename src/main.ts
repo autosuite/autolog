@@ -4,8 +4,6 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as github from '@actions/github';
 
-import Octokit from '@octokit/rest';
-
 import * as autolib from '@teaminkling/autolib';
 
 /** The filename for the meta file for GitHub Changelog Generator. */
@@ -30,25 +28,23 @@ const CHANGELOG_VERSION_REGEX: RegExp = /(?<=## \[)(v?\d\.\d\.\d)(?=].*)/;
  * @param repo the repo name
  */
 async function findLatestVersionFromMilestones(owner: string, repo: string): Promise<autolib.SemVer> {
-    const milestones: Octokit.IssuesListMilestonesForRepoResponse = (
+    const milestones: string[] = (
         await new github.GitHub(
             core.getInput("github-token")
         ).issues.listMilestonesForRepo({ owner, repo })
-    ).data;
+    ).data.map(milestone => milestone.title);
 
     /* The latest milestone is the last one in the array response. */
 
     for (const milestone of milestones) {
-        const versionMatches: RegExpMatchArray | null = milestone.title.match(autolib.SEMVER_REGEXP);
+        const versionMatches: RegExpMatchArray | null = milestone.match(autolib.SEMVER_REGEXP);
 
         if (versionMatches && versionMatches.length == 1) {
             return autolib.SemVer.constructFromText(versionMatches[0]);
         }
     }
 
-    core.warning(
-        "No milestones have been found. Consider running autosuite/automilestone before autolog! Returning 0.0.0."
-    )
+    core.warning("No milestones have been found. Returning 0.0.0.");
 
     return autolib.SemVer.constructZero();
 }
@@ -62,7 +58,7 @@ async function findLatestVersionFromChangelog(changelogContents: string): Promis
     const foundVersions: RegExpMatchArray | null = changelogContents.match(CHANGELOG_VERSION_REGEX);
 
     if (!foundVersions) {
-        core.warning("Cannot find a version in the changelog. This can be okay; setting to `0.0.0`.");
+        core.info("Cannot find a version in the changelog. This is probably okay. Setting to 0.0.0.");
 
         return autolib.SemVer.constructZero();
     }
@@ -171,7 +167,7 @@ async function run(): Promise<void> {
     const latestMilestoneVersion: autolib.SemVer = await findLatestVersionFromMilestones(owner, repo);
 
     if (latestMilestoneVersion.isZero()) {
-        core.setFailed("No milestones found. At least one milestone must exist if you use autolog!");
+        core.setFailed("0.0.0 is not a valid milestone and it is the only valid existing open milestone!");
     }
 
     core.info(`[Found] The latest milestone version found was: \`${latestMilestoneVersion}\``);
