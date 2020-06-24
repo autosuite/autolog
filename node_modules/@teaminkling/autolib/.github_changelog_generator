@@ -1,4 +1,0 @@
-issues-wo-labels=false
-exclude-labels=duplicate,question,invalid,wontfix,epic
-base=HISTORY.md
-future-release=null

@@ -8,6 +8,12 @@ import each from "jest-each";
 
 import { SemVer } from "../index";
 
+describe("This is a simple test", () => {
+    test("Check the sampleFunction function", () => {
+        expect(SemVer.constructFromText("0.0.0")).toBeTruthy();
+    });
+});
+
 describe("SemVer.constructFromText (nominal)", () => {
     each([
         /* SemVers with some extremes, some zeroes, and no info strings. */

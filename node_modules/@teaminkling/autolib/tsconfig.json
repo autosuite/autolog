@@ -21,8 +21,12 @@
     "esModuleInterop": true,
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true,
-    "rootDir": "src",
-    "outDir": "dist",
-    "declaration": true
-  }
+    "outDir": "./dist",
+    "declaration": true,
+    "inlineSourceMap": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
