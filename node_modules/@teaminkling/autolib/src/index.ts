@@ -19,7 +19,7 @@ import * as exec from '@actions/exec';
  * - `2`: `5`
  * - `3`: `-beta+17-2020-05-12`
  */
-export const SEMVER_REGEXP: RegExp = /v?(\d)\.(\d)\.(\d)(.*)/;
+export const SEMVER_REGEXP: RegExp = /v?(?<major>\d*)\.(?<minor>\d*)\.(?<patch>\d*)(?<info>.*)/;
 
 /*
  * -------------------------------------------------------------------------------------------------------------------
@@ -73,13 +73,15 @@ export class SemVer {
             throw Error(`Provided text is not valid SemVer: [${text}]`);
         }
 
-        const major: number = parseInt(match[0]);
-        const minor: number = parseInt(match[1]);
-        const patch: number = parseInt(match[2]);
+        const groups: {[key: string]: string} = match.groups!;
+
+        const major: number = parseInt(groups["major"]);
+        const minor: number = parseInt(groups["minor"]);
+        const patch: number = parseInt(groups["patch"]);
 
         /* Force set to null if falsey (empty string). */
 
-        const info: string | null = match[3] || null;
+        const info: string | null = groups["info"] || null;
 
         return new SemVer(major, minor, patch, info);
     }
