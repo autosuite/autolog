@@ -1,8 +1,25 @@
 # IDE
 
-.idea/*
+.idea/
+.vscode/
 
 # Environment
 
 HISTORY.md
+dist/
+coverage/
+
+## Python
+
 .env
+__pycache__/
+
+### Django
+
+*.sqlite3
+
+## JavaScript
+
+.nuxt/
+node_modules/
+.nyc_output
